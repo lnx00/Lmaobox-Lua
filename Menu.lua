@@ -35,7 +35,6 @@ local MenuTable = {}
 
 local font_Verdana = draw.CreateFont("verdana", 14, 510)
 local anyDragging = false
-local lastButton = 0
 
 function Menu.Create(pTitle, pOpen)
     local instance = setmetatable({}, MetaMenu)
@@ -101,14 +100,17 @@ function Menu.DrawMenus()
                     draw.Text(m.X + 28, currentY + 5, c.Name)
 
                     -- Toggle on Click
-                    if not anyDragging and input.IsButtonDown(MOUSE_LEFT) ~= lastButton then
-                        lastButton =  input.IsButtonDown(MOUSE_LEFT)
+                    if not anyDragging and input.IsButtonDown(MOUSE_LEFT) then
                         if MouseInBounds(m.X + 4, currentY + 2, m.X + 24, currentY + 22) then
                             c.Value = not c.Value
                         end
                     end
                 end
+
                 currentY = currentY + 24
+                if currentY > (m.Y + m.Height) then
+                    goto continue
+                end
             end
 
             -- Mouse interaction
@@ -120,6 +122,8 @@ function Menu.DrawMenus()
                 end
             end
         end
+
+        ::continue::
     end
 end
 
