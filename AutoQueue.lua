@@ -2,11 +2,11 @@ AutoQueue = true
 local lastTime = 0
 
 function Draw_AutoQueue()
-    if not AutoQueue or gamecoordinator.HasLiveMatch() or gamecoordinator.IsConnectedToMatchServer() then
+    if not AutoQueue or gamecoordinator.HasLiveMatch() or gamecoordinator.IsConnectedToMatchServer() or gamecoordinator.GetNumMatchInvites() > 0 then
         return
     end
 
-    if globals.RealTime() - lastTime < 5 then
+    if globals.RealTime() - lastTime < 4 then
         return
     end
 
