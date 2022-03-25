@@ -1,3 +1,10 @@
+--[[
+
+Auto Queue for Lmaobox
+Author: LNX
+
+]]--
+
 AutoQueue = true
 local lastTime = 0
 
