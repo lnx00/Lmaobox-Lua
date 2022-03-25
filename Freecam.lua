@@ -1,3 +1,10 @@
+--[[
+
+Freecam for Lmaobox
+Author: LNX
+
+]]--
+
 local options = {
     Key = KEY_LSHIFT,
     Speed = 10
