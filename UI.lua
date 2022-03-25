@@ -30,25 +30,34 @@ function CopyColor(pColor)
     return { R = pColor.R, G = pColor.G, B = pColor.B, A = pColor.A }
 end
 
+function CopyPos(pPos)
+    return { X = pPos.X, Y = pPos.Y }
+end
+
+function CopySize(pSize)
+    return { Width = pSize.Width, Height = pSize.Height }
+end
+
 --[[ Rect Element ]]--
 local Rect = {
     ID = 0,
     Visible = true,
     Position = { X = 100, Y = 100 },
-    Width = 200,
-    Height = 200,
+    Size = { Width = 200, Height = 200 },
     Filled = true,
     Color = CopyColor(UI.DefaultColor),
     Speed = 400,
 
     _animation = ANIM_NONE,
     _color = CopyColor(UI.DefaultColor), -- Color to restore after animations
+    _position = { X = 100, Y = 100 },
+    _size = { Width = 200, Height = 200 }
 }
 
 local MetaRect = {}
 MetaRect.__index = Rect
 
-function Rect.Create(pPosition, pWidth, pHeight, pFilled, pColor, pVisible, pSpeed)
+function Rect.Create(pPosition, pSize, pFilled, pColor, pVisible, pSpeed)
     pColor = pColor or CopyColor(UI.DefaultColor)
     pVisible = (pVisible ~= false)
     pSpeed = pSpeed or UI.DefaultSpeed
@@ -56,14 +65,15 @@ function Rect.Create(pPosition, pWidth, pHeight, pFilled, pColor, pVisible, pSpe
     local iRect = setmetatable({}, MetaRect)
     iRect.ID = UI._currentID
     iRect.Position = pPosition
-    iRect.Width = pWidth
-    iRect.Height = pHeight
+    iRect.Size = pSize
     iRect.Filled = pFilled
     iRect.Color = pColor
     iRect.Speed = pSpeed
 
     -- We don't want a reference of these tables
     iRect._color = CopyColor(pColor)
+    iRect._position = CopyPos(pPosition)
+    iRect._size = CopySize(pSize)
     iRect:SetVisible(pVisible)
 
     table.insert(UI._rectTable, iRect)
@@ -74,6 +84,16 @@ end
 function Rect:SetColor(pColor)
     self.Color = pColor
     self._color = CopyColor(pColor)
+end
+
+function Rect:SetPosition(pPosition)
+    self.Position = pPosition
+    self._position = CopyPos(pPosition)
+end
+
+function Rect:SetSize(pSize)
+    self.Size = pSize
+    self._size = CopySize(pSize)
 end
 
 function Rect:SetVisible(pState)
@@ -104,6 +124,12 @@ function Rect:FadeOut(pSpeed)
     if self.Color.A > 0 then
         self._animation = ANIM_FADEOUT
     end
+end
+
+function Rect:Transform(pPosition, pSize, pSpeed)
+    self._position = pPosition or self._position
+    self._size = pSize or self._size
+    self.Speed = pSpeed or self.Speed
 end
 
 function Rect:Cancel()
@@ -193,6 +219,7 @@ local Text = {
     Speed = 400,
     _animation = ANIM_NONE,
     _color = CopyColor(UI.DefaultColor), -- Color to restore after animations
+    _position = { X = 100, Y = 100 }
 }
 
 local MetaText = {}
@@ -218,6 +245,7 @@ function Text.Create(pPosition, pText, pColor, pShadow, pAlign, pFont, pVisible,
 
     -- We don't want a reference of these tables
     iText._color = CopyColor(pColor)
+    iText._position = CopyPos(pPosition)
     iText:SetVisible(pVisible)
 
     table.insert(UI._textTable, iText)
@@ -228,6 +256,11 @@ end
 function Text:SetColor(pColor)
     self.Color = pColor
     self._color = CopyColor(pColor)
+end
+
+function Text:SetPosition(pPosition)
+    self.Position = pPosition
+    self._position = CopyPos(pPosition)
 end
 
 function Text:SetVisible(pState)
@@ -260,6 +293,11 @@ function Text:Cancel()
     self.Position = self._position
 end
 
+function Text:Transform(pPosition, pSpeed)
+    self._position = pPosition or self._position
+    self.Speed = pSpeed or self.Speed
+end
+
 --[[ UI ]]--
 function UI._Animate(self)
     if self._animation == ANIM_FADEIN then
@@ -279,6 +317,28 @@ function UI._Animate(self)
             self.Visible = false
         end
     end
+
+    if self.Position and self._position then
+        if self.Position.X < self._position.X or self.Position.Y < self._position.Y then
+            self.Position.X = math.min(self.Position.X + globals.FrameTime() * self.Speed, self._position.X)
+            self.Position.Y = math.min(self.Position.Y + globals.FrameTime() * self.Speed, self._position.Y)
+        end
+        if  self.Position.X > self._position.X or self.Position.Y > self._position.Y then
+            self.Position.X = math.max(self.Position.X - globals.FrameTime() * self.Speed, self._position.X)
+            self.Position.Y = math.max(self.Position.Y - globals.FrameTime() * self.Speed, self._position.Y)
+        end
+    end
+
+    if self.Size and self._size then
+        if self.Size.Width < self._size.Width or self.Size.Height < self._size.Height then
+            self.Size.Width = math.min(self.Size.Width + globals.FrameTime() * self.Speed, self._size.Width)
+            self.Size.Height = math.min(self.Size.Height + globals.FrameTime() * self.Speed, self._size.Height)
+        end
+        if self.Size.Width > self._size.Width or self.Size.Height > self._size.Height then
+            self.Size.Width = math.max(self.Size.Width - globals.FrameTime() * self.Speed, self._size.Width)
+            self.Size.Height = math.max(self.Size.Height - globals.FrameTime() * self.Speed, self._size.Height)
+        end
+    end
 end
 
 -- Draw all UI Elements
@@ -292,9 +352,9 @@ function UI.Draw()
         if r.Visible then
             draw.Color(r.Color.R, r.Color.G, r.Color.B,  math.floor(r.Color.A))
             if r.Filled then
-                draw.FilledRect(math.floor(r.Position.X), math.floor(r.Position.Y), math.floor(r.Position.X + r.Width), math.floor(r.Position.Y + r.Height))
+                draw.FilledRect(math.floor(r.Position.X), math.floor(r.Position.Y), math.floor(r.Position.X + r.Size.Width), math.floor(r.Position.Y + r.Size.Height))
             else
-                draw.OutlinedRect(math.floor(r.Position.X), math.floor(r.Position.Y), math.floor(r.Position.X + r.Width), math.floor(r.Position.Y + r.Height))
+                draw.OutlinedRect(math.floor(r.Position.X), math.floor(r.Position.Y), math.floor(r.Position.X + r.Size.Width), math.floor(r.Position.Y + r.Size.Height))
             end
         end
         UI._Animate(r)
@@ -334,7 +394,7 @@ function UI.Draw()
 end
 
 function UI.AddRect(pX, pY, pWidth, pHeight, pFilled, pColor, pVisible, pSpeed)
-    return Rect.Create({ X = pX, Y = pY }, pWidth, pHeight, pFilled, pColor, pVisible, pSpeed)
+    return Rect.Create({ X = pX, Y = pY }, { Width = pWidth, Height = pHeight }, pFilled, pColor, pVisible, pSpeed)
 end
 
 function UI.RemoveRect(pElement)
