@@ -1,9 +1,7 @@
 --[[
-
-UI Library for Lmaobox
-Author: LNX
-
-]]--
+    UI Library for Lmaobox
+    Author: LNX (github.com/lnx00)
+]]
 
 local UI = {}
 
@@ -20,6 +18,18 @@ TextAlign = {
     LEFT = 1,
     CENTER = 2,
     RIGHT = 3
+}
+
+Colors = {
+    WHITE = { R = 255, G = 255, B = 255, A = 255 },
+    BLACK = { R = 0, G = 0, B = 0, A = 255 },
+    RED = { R = 255, G = 0, B = 0, A = 255 },
+    GREEN = { R = 0, G = 255, B = 0, A = 255 },
+    BLUE = { R = 0, G = 0, B = 255, A = 255 },
+    YELLOW = { R = 255, G = 255, B = 0, A = 255 },
+    ORANGE = { R = 255, G = 128, B = 0, A = 255 },
+    PURPLE = { R = 255, G = 0, B = 255, A = 255 },
+    CYAN = { R = 0, G = 255, B = 255, A = 255 }
 }
 
 local ANIM_NONE <const> = 0
@@ -393,24 +403,24 @@ function UI.Draw()
     end
 end
 
-function UI.AddRect(pX, pY, pWidth, pHeight, pFilled, pColor, pVisible, pSpeed)
-    return Rect.Create({ X = pX, Y = pY }, { Width = pWidth, Height = pHeight }, pFilled, pColor, pVisible, pSpeed)
+function UI.AddRect(pX, pY, pWidth, pHeight, pFilled, pColor, pVisible)
+    return Rect.Create({ X = pX, Y = pY }, { Width = pWidth, Height = pHeight }, pFilled, pColor, pVisible)
 end
 
 function UI.RemoveRect(pElement)
     table.remove(UI._rectTable, pElement)
 end
 
-function UI.AddLine(pX, pY, pX2, pY2, pColor, pVisible, pSpeed)
-    return Line.Create({ X = pX, Y = pY, X2 = pX2, Y2 = pY2 }, pColor, pVisible, pSpeed)
+function UI.AddLine(pX, pY, pX2, pY2, pColor, pVisible)
+    return Line.Create({ X = pX, Y = pY, X2 = pX2, Y2 = pY2 }, pColor, pVisible)
 end
 
 function UI.RemoveLine(pElement)
     table.remove(UI._lineTable, pElement)
 end
 
-function UI.AddText(pX, pY, pText, pColor, pShadow, pAlign, pFont, pVisible, pSpeed)
-    return Text.Create({ X = pX, Y = pY }, pText, pColor, pShadow, pAlign, pFont, pVisible, pSpeed)
+function UI.AddText(pX, pY, pText, pColor, pShadow, pAlign, pFont, pVisible)
+    return Text.Create({ X = pX, Y = pY }, pText, pColor, pShadow, pAlign, pFont, pVisible)
 end
 
 function UI.RemoveText(pElement)

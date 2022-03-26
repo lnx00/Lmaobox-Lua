@@ -1,0 +1,57 @@
+--[[
+    Utils for Lmaobox
+    Author: LNX (github.com/lnx00)
+]]
+
+local Utils = {}
+
+-- Converts a given SteamID 3 to a SteamID 64
+function Utils.ID3toID64(pID3)
+    local id = string.sub(pID3, 6, #pID3 - 1)
+    return tonumber(id) + 0x110000100000000
+end
+
+-- Converts a given SteamID 64 to a SteamID 3
+function Utils.ID64toID3(pID64)
+    return "[U:1:" .. (tonumber(pID64) ^ 0x110000100000000) .. "]"
+end
+
+-- Returns a deep copy of the given table
+function Utils.CopyTable(pTable)
+    local newTable = {}
+    for k, v in pairs(pTable) do
+        if type(v) == "table" then
+            newTable[k] = Utils.CopyTable(v)
+        else
+            newTable[k] = v
+        end
+    end
+    return newTable
+end
+
+-- Converts a given EulerAngle to a directional Vector3
+function Utils.EulerToVector(pEuler)
+    local pitch, yaw, roll = pEuler:Unpack()
+    local x = math.cos(yaw) * math.cos(pitch)
+    local y = math.sin(yaw) * math.cos(pitch)
+    local z = math.sin(pitch)
+    return Vector3(x, y, z)
+end
+
+-- Sanitizes a given string
+function Utils.Sanitize(pString)
+    pString:gsub("\"", "'")
+    return pString
+end
+
+-- find element in table by id
+function Utils.FindElementByID(pTable, pID)
+    for k, v in pairs(pTable) do
+        if v.ID == pID then
+            return v
+        end
+    end
+    return nil
+end
+
+return Utils

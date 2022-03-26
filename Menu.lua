@@ -1,3 +1,8 @@
+--[[
+    Menu Library for Lmaobox (WIP)
+    Author: LNX (github.com/lnx00)
+]]
+
 --[[ Utils ]]--
 function MouseInBounds(pX, pY, pX2, pY2)
     local mX = input.GetMousePos()[1]

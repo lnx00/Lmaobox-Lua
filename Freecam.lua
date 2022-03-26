@@ -1,9 +1,7 @@
 --[[
-
-Freecam for Lmaobox
-Author: LNX
-
-]]--
+    Freecam for Lmaobox
+    Author: LNX (github.com/lnx00)
+]]
 
 local options = {
     Key = KEY_LSHIFT,
@@ -60,6 +58,7 @@ local function PostPropUpdate()
     if input.IsButtonDown(options.Key) and bFreecamActive then
         local pLocal = entities.GetLocalPlayer()
         pLocal:SetPropVector(vFreecamPos, "tfnonlocaldata", "m_vecOrigin")
+        --pLocal:SetAbsOrigin(vFreecamPos)
     end
 end
 

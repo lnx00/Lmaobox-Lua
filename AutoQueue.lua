@@ -1,9 +1,7 @@
 --[[
-
-Auto Queue for Lmaobox
-Author: LNX
-
-]]--
+    Auto Queue for Lmaobox
+    Author: LNX (github.com/lnx00)
+]]
 
 AutoQueue = true
 local lastTime = 0
