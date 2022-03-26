@@ -8,7 +8,7 @@ Author: LNX
 AutoQueue = true
 local lastTime = 0
 
-function Draw_AutoQueue()
+local function Draw_AutoQueue()
     if not AutoQueue or gamecoordinator.HasLiveMatch() or gamecoordinator.IsConnectedToMatchServer() or gamecoordinator.GetNumMatchInvites() > 0 then
         return
     end

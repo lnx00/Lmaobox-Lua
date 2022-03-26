@@ -13,7 +13,7 @@ local options = {
 local vFreecamPos = Vector3(0, 0, 0)
 local bFreecamActive = false
 
-function CreateMove(pCmd)
+local function CreateMove(pCmd)
     local pLocal = entities.GetLocalPlayer()
     if input.IsButtonDown(options.Key) then
         if not bFreecamActive then
@@ -56,7 +56,7 @@ function CreateMove(pCmd)
     end
 end
 
-function PostPropUpdate()
+local function PostPropUpdate()
     if input.IsButtonDown(options.Key) and bFreecamActive then
         local pLocal = entities.GetLocalPlayer()
         pLocal:SetPropVector(vFreecamPos, "tfnonlocaldata", "m_vecOrigin")
