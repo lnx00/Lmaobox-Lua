@@ -3,12 +3,12 @@
     Author: LNX (github.com/lnx00)
 ]]
 
+ClearChat = true
+
 local options = {
     PrintToChat = true,
     PrintToConsole = false
 }
-
-local voteTarget = -1
 
 local function GetClearMessage(pVictim)
     local chatMessage = "?\n" .. pVictim .. ":\n\n" ..
@@ -33,6 +33,8 @@ local function GetRandomPlayerName()
 end
 
 local function DispatchUserMessage( msg )
+    if not ClearChat then return end
+
     if msg:GetID() == SayText2 then
         msg:SetCurBit(8)
         local me = entities.GetLocalPlayer()
@@ -53,7 +55,7 @@ local function DispatchUserMessage( msg )
         if string.find(message, "cheat") or string.find(message, "hack") or 
         string.find(message, "bot") or string.find(message, "aim") or
         string.find(message, "esp") or string.find(message, "kick") or
-        string.find(message, "hax") or (voteTarget == me:GetIndex() and string.find(message, "f1")) then
+        string.find(message, "hax") or string.find(message, "exploit") then
             local victimName = GetRandomPlayerName() or "Server"
 
             client.ChatTeamSay(GetClearMessage(victimName))
@@ -64,15 +66,6 @@ local function DispatchUserMessage( msg )
                 print("[ChatCensor] " .. playerName .. " wrote " .. message)
             end
         end
-    elseif msg:GetID() == VoteStart then
-        local team = msg:ReadByte()
-        local caller = msg:ReadByte()
-        local reason = msg:ReadString(64)
-        local voteTarget = msg:ReadString(64)
-        local target = msg:ReadByte() >> 1
-        voteTarget = target
-    elseif msg:GetID() == VotePass or msg:GetID() == VoteFailed then
-        voteTarget = -1
     end
 end
 
