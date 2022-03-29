@@ -5,6 +5,7 @@
 
 AutoQueue = true
 local lastTime = 0
+local casual = party.GetAllMatchGroups()["Casual"]
 
 local function Draw_AutoQueue()
     if not AutoQueue or gamecoordinator.HasLiveMatch() or gamecoordinator.IsConnectedToMatchServer() or gamecoordinator.GetNumMatchInvites() > 0 then
@@ -16,8 +17,8 @@ local function Draw_AutoQueue()
     end
 
     lastTime = globals.RealTime()
-    if #party.GetQueuedMatchGroups() == 0 and not party.IsInStandbyQueue() then
-        party.QueueUp(7)
+    if #party.GetQueuedMatchGroups() == 0 and not party.IsInStandbyQueue() and party.CanQueueForMatchGroup( casual ) then
+        party.QueueUp(casual)
     end
 end
 
