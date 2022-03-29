@@ -11,13 +11,15 @@ local function Draw_AutoQueue()
         return
     end
 
-    if globals.RealTime() - lastTime < 4 then
+    if globals.RealTime() - lastTime < 5 then
         return
     end
 
     lastTime = globals.RealTime()
-    if #party.GetQueuedMatchGroups() == 0 and not party.IsInStandbyQueue() then
-        party.QueueUp(7)
+    local casualQueue = party.GetAllMatchGroups()["Casual"]
+    local queueReasons = party.CanQueueForMatchGroup(casualQueue)
+    if #party.GetQueuedMatchGroups() == 0 and not party.IsInStandbyQueue() and queueReasons then
+        party.QueueUp(casualQueue)
     end
 end
 
