@@ -25,8 +25,9 @@ end
 local function GetRandomPlayerName()
     local players = entities.FindByClass("CTFPlayer")
     local randomPlayer = players[math.random(1, #players)]
+    local rpInfo = client.GetPlayerInfo(randomPlayer:GetIndex())
     local me = entities.GetLocalPlayer()
-    if me:GetIndex() ~= randomPlayer:GetIndex() then
+    if me:GetIndex() ~= randomPlayer:GetIndex() and not steam.IsFriend(rpInfo.SteamID) then
         return randomPlayer:GetName()
     end
     return nil
@@ -36,12 +37,22 @@ local function DispatchUserMessage( msg )
     if not ClearChat then return end
 
     if msg:GetID() == SayText2 then
+        --msg:SetCurBit(8)
+        msg:SetCurBit(1)
+        local entIdx = msg:ReadByte()
         msg:SetCurBit(8)
         local me = entities.GetLocalPlayer()
 
+        local chatEnt = entities.GetByIndex(entIdx)
         local chatType = msg:ReadString(256)
         local playerName = msg:ReadString(256)
         local message = msg:ReadString(256)
+
+        -- Don't clear our or friends messages
+        local spInfo = client.GetPlayerInfo(chatEnt:GetIndex())
+        if chatEnt:GetIndex() == me:GetIndex() or steam.IsFriend(spInfo.SteamID) then
+            return
+        end
 
         -- clean the message
         message = message:lower()
