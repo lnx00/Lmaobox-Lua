@@ -121,8 +121,7 @@ Button.__index = Button
 setmetatable(Button, Component)
 
 function Button.New(label, callback)
-    --assert(type(callback) == "function", "Button callback must be a function")
-    print("Button Type: " .. type(callback))
+    assert(type(callback) == "function", "Button callback must be a function")
 
     local self = setmetatable({}, Button)
     self.ID = MenuManager.CurrentID
@@ -236,13 +235,12 @@ end
 
 -- Renders the menus and components
 function MenuManager.Draw()
-    MenuManager.DrawDebug()
-
     -- Don't draw if we should ignore screenshots
     if gui.GetValue("clean screenshots") == 1 and engine.IsTakingScreenshot() then
         return
     end
 
+    MenuManager.DrawDebug()
     UpdateMouseState()
 
     for k, vMenu in pairs(MenuManager.Menus) do
@@ -298,7 +296,7 @@ function MenuManager.DrawDebug()
         currentY = currentY + 20
         currentX = currentX + 20
         for k, vComponent in pairs(vMenu.Components) do
-            draw.Text(currentX, currentY, "Component-ID: " .. vComponent.ID .. ", Visibie: " .. tostring(vComponent.Visible))
+            draw.Text(currentX, currentY, "Component-ID: " .. vComponent.ID .. ", Visible: " .. tostring(vComponent.Visible))
             currentY = currentY + 20
         end
         currentX = currentX - 25
