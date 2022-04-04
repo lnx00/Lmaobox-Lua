@@ -5,15 +5,17 @@
 local MenuManager = {
     CurrentID = 1,
     Menus = {},
-    Font = draw.CreateFont("Verdana", 14, 510)
+    Font = draw.CreateFont("Verdana", 14, 510),
+    Version = 1.0,
+    DebugInfo = false
 }
 
 MenuFlags = {
     None = 0,
-    NoTitle = 1 << 0,
-    NoBackground = 1 << 1,
-    NoDrag = 1 << 2,
-    AutoSize = 1 << 3
+    NoTitle = 1 << 0, -- No title bar
+    NoBackground = 1 << 1, -- No window background
+    NoDrag = 1 << 2, -- Disable dragging
+    AutoSize = 1 << 3 -- Auto size height to contents
 }
 
 local lastMouseState = false
@@ -24,19 +26,12 @@ local dragOffset = {0, 0}
 local function MouseInBounds(pX, pY, pX2, pY2)
     local mX = input.GetMousePos()[1]
     local mY = input.GetMousePos()[2]
-    if mX > pX and mX < pX2 and mY > pY and mY < pY2 then
-        return true
-    end
-    return false
+    return (mX > pX and mX < pX2 and mY > pY and mY < pY2)
 end
 
 local function UpdateMouseState()
     local mouseState = input.IsButtonDown(MOUSE_LEFT)
-    if mouseState == false and lastMouseState == true then
-        mouseUp = true
-    else
-        mouseUp = false
-    end
+    mouseUp = (mouseState == false and lastMouseState == true)
     lastMouseState = mouseState
 end
 
@@ -182,7 +177,8 @@ Combobox = {
     Options = nil,
     Selected = nil,
     SelectedIndex = 1,
-    Open = false
+    Open = false,
+    _MaxSize = 0
 }
 Combobox.__index = Combobox
 setmetatable(Combobox, Component)
@@ -232,7 +228,10 @@ function Combobox:Render(menu)
     if self.Open then
         menu.Cursor.Y = menu.Cursor.Y + cmbHeight
         for i, vOption in ipairs(self.Options) do
-            local optWidth, optHeight = draw.GetTextSize(vOption)
+            local olWidth, olHeight = draw.GetTextSize(vOption)
+            if self._MaxSize > olWidth then
+                olWidth = self._MaxSize
+            end
             local optActive = (i == self.SelectedIndex)
 
             -- Interaction
@@ -241,7 +240,7 @@ function Combobox:Render(menu)
             else
                 draw.Color(65, 65, 65, 250)
             end
-            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + optWidth, menu.Y + menu.Cursor.Y + optHeight) then
+            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2)) then
                 if input.IsButtonDown(MOUSE_LEFT) then
                     draw.Color(70, 70, 70, 255)
                 end
@@ -253,10 +252,17 @@ function Combobox:Render(menu)
             end
 
             -- Drawing
-            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + optWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + optHeight + (menu.Space * 2))
+            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2))
             draw.Color(255, 255, 255, 255)
             draw.Text(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space, vOption)
-            menu.Cursor.Y = menu.Cursor.Y + optHeight + (menu.Space * 2)
+            
+            if olWidth > self._MaxSize then
+                self._MaxSize = olWidth
+            elseif cmbWidth > self._MaxSize then
+                self._MaxSize = cmbWidth
+            end
+
+            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Space * 2)
         end
     end
 
@@ -267,7 +273,8 @@ end
 MultiCombobox = {
     Label = "New Multibox",
     Options = nil,
-    Open = false
+    Open = false,
+    _MaxSize = 0
 }
 MultiCombobox.__index = MultiCombobox
 setmetatable(MultiCombobox, Component)
@@ -316,7 +323,10 @@ function MultiCombobox:Render(menu)
     if self.Open then
         menu.Cursor.Y = menu.Cursor.Y + cmbHeight
         for i, vOption in ipairs(self.Options) do
-            local optWidth, optHeight = draw.GetTextSize(vOption[1])
+            local olWidth, olHeight = draw.GetTextSize(vOption[1])
+            if self._MaxSize > olWidth then
+                olWidth = self._MaxSize
+            end
 
             -- Interaction
             if vOption[2] == true then
@@ -324,8 +334,8 @@ function MultiCombobox:Render(menu)
             else
                 draw.Color(65, 65, 65, 250)
             end
-            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + optWidth, menu.Y + menu.Cursor.Y + optHeight) then
-                if input.IsButtonDown(MOUSE_LEFT) then
+            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth, menu.Y + menu.Cursor.Y + olHeight) then
+                if vOption[2] == true == false and input.IsButtonDown(MOUSE_LEFT) then
                     draw.Color(70, 70, 70, 255)
                 end
                 if mouseUp then
@@ -334,10 +344,17 @@ function MultiCombobox:Render(menu)
             end
 
             -- Drawing
-            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + optWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + optHeight + (menu.Space * 2))
+            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2))
             draw.Color(255, 255, 255, 255)
             draw.Text(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space, vOption[1])
-            menu.Cursor.Y = menu.Cursor.Y + optHeight + (menu.Space * 2)
+            
+            if olWidth > self._MaxSize then
+                self._MaxSize = olWidth
+            elseif cmbWidth > self._MaxSize then
+                self._MaxSize = cmbWidth
+            end
+
+            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Space * 2)
         end
     end
 
@@ -372,6 +389,10 @@ function Menu.New(title, flags)
     return self
 end
 
+function Menu:SetVisible(visible)
+    self.Visible = visible
+end
+
 function Menu:SetTitle(title)
     self.Title = title
 end
@@ -391,42 +412,28 @@ function Menu:AddComponent(component)
     return component
 end
 
-function Menu:RemoveComponent(id)
-    for i, component in ipairs(self.Components) do
-        if component.ID == id then
-            table.remove(self.Components, i)
-            break
+-- remove a given component
+function Menu:RemoveComponent(component)
+    for k, vComp in pairs(self.Components) do
+        if vComp.ID == component.ID then
+            table.remove(self.Components, k)
+            return
         end
     end
 end
 
-function Menu:Show()
-    self.Visible = true
+function Menu:Remove()
+    MenuManager.RemoveMenu(self)
 end
 
 --[[ Menu Manager ]]
 function MenuManager.Create(title, flags)
-    flags = flags or 0
+    flags = flags or MenuFlags.None
+    print("Title: " .. title .. ", Flags: " .. flags)
 
     local menu = Menu.New(title, flags)
     MenuManager.AddMenu(menu)
     return menu
-end
-
-function MenuManager.Auto(title, options)
-    assert(type(options) == "table", "Menu options must be a table")
-
-    local menu = MenuManager.Create(title, MenuFlags.AutoSize)
-    for k, vOption in pairs(options) do
-        local optionName = k:gsub("%p", " ")
-        if type(vOption) == "boolean" then
-            menu:AddComponent(Checkbox.New(optionName, vOption))
-        elseif type(vOption) == "string" then
-            menu:AddComponent(Label.New(optionName))
-        elseif type(vOption) == "function" then
-            menu:AddComponent(Button.New(optionName, vOption))
-        end
-    end
 end
 
 function MenuManager.AddMenu(menu)
@@ -473,7 +480,12 @@ function MenuManager.Draw()
         return
     end
 
-    MenuManager.DrawDebug()
+    draw.Color(255, 255, 255, 255)
+    draw.SetFont(MenuManager.Font)
+
+    if MenuManager.DebugInfo then
+        MenuManager.DrawDebug()
+    end
     UpdateMouseState()
 
     for k, vMenu in pairs(MenuManager.Menus) do
@@ -484,7 +496,7 @@ function MenuManager.Draw()
         local tbHeight = 20
 
         -- Auto Size
-        if vMenu.Flags & MenuFlags.AutoSize == 1 then
+        if vMenu.Flags & MenuFlags.AutoSize ~= 0 then
             vMenu.Height = vMenu._AutoH
         end
 
@@ -527,7 +539,7 @@ function MenuManager.Draw()
         vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Space
         vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Space
         for k, vComponent in pairs(vMenu.Components) do
-            if vComponent.Visible == true then
+            if vComponent.Visible == true and vMenu.Cursor.Y < vMenu.Height then
                 vComponent:Render(vMenu)
             end
         end
@@ -541,14 +553,12 @@ end
 
 -- Prints debug info about menus and components
 function MenuManager.DrawDebug()
-    draw.Color(255, 255, 255, 255)
-    draw.SetFont(MenuManager.Font)
     draw.Text(50, 50, "## DEBUG INFO ##")
 
     local currentY = 70
     local currentX = 50
     for k, vMenu in pairs(MenuManager.Menus) do
-        draw.Text(currentX, currentY, "Menu: " .. vMenu.Title)
+        draw.Text(currentX, currentY, "Menu: " .. vMenu.Title .. ", Flags: " .. vMenu.Flags)
         currentY = currentY + 20
         currentX = currentX + 20
         for k, vComponent in pairs(vMenu.Components) do
