@@ -100,6 +100,7 @@ MenuFlags.NoTitle - No title bar
 MenuFlags.NoBackground - No window background
 MenuFlags.NoDrag - Disable dragging
 MenuFlags.AutoSize - Auto size height to contents
+MenuFlags.ShowAlways - Show menu when ingame
 ```
 
 Have fun creating menus!
