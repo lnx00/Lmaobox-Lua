@@ -429,7 +429,6 @@ end
 --[[ Menu Manager ]]
 function MenuManager.Create(title, flags)
     flags = flags or MenuFlags.None
-    print("Title: " .. title .. ", Flags: " .. flags)
 
     local menu = Menu.New(title, flags)
     MenuManager.AddMenu(menu)
@@ -574,6 +573,6 @@ end
 callbacks.Unregister("Draw", "Draw_MenuManager")
 callbacks.Register("Draw", "Draw_MenuManager", MenuManager.Draw)
 
-print("Menu Library loaded!")
+print("Menu Library loaded! Version: " .. MenuManager.Version)
 
 return MenuManager
