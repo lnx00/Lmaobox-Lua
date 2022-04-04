@@ -15,7 +15,8 @@ MenuFlags = {
     NoTitle = 1 << 0, -- No title bar
     NoBackground = 1 << 1, -- No window background
     NoDrag = 1 << 2, -- Disable dragging
-    AutoSize = 1 << 3 -- Auto size height to contents
+    AutoSize = 1 << 3, -- Auto size height to contents
+    ShowAlways = 1 << 4 -- Show menu when ingame
 }
 
 local lastMouseState = false
@@ -36,7 +37,7 @@ local function UpdateMouseState()
 end
 
 --[[ Component Class ]]
-Component = {
+local Component = {
     ID = 0,
     Visible = true
 }
@@ -54,7 +55,7 @@ function Component:SetVisible(state)
 end
 
 --[[ Label Component ]]
-Label = {
+local Label = {
     Text = "New Label"
 }
 Label.__index = Label
@@ -79,7 +80,7 @@ function Label:Render(menu)
 end
 
 --[[ Checkbox Component ]]
-Checkbox = {
+local Checkbox = {
     Label = "New Checkbox",
     Value = false
 }
@@ -128,7 +129,7 @@ function Checkbox:Render(menu)
 end
 
 --[[ Button Component ]]
-Button = {
+local Button = {
     Label = "New Button",
     Callback = nil
 }
@@ -172,7 +173,7 @@ function Button:Render(menu)
 end
 
 --[[ Combobox Compnent ]]
-Combobox = {
+local Combobox = {
     Label = "New Combobox",
     Options = nil,
     Selected = nil,
@@ -270,7 +271,7 @@ function Combobox:Render(menu)
 end
 
 --[[ Multi Combobox Component ]]
-MultiCombobox = {
+local MultiCombobox = {
     Label = "New Multibox",
     Options = nil,
     Open = false,
@@ -334,7 +335,7 @@ function MultiCombobox:Render(menu)
             else
                 draw.Color(65, 65, 65, 250)
             end
-            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth, menu.Y + menu.Cursor.Y + olHeight) then
+            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2)) then
                 if vOption[2] == true == false and input.IsButtonDown(MOUSE_LEFT) then
                     draw.Color(70, 70, 70, 255)
                 end
@@ -375,7 +376,7 @@ local Menu = {
     _AutoH = 0
 }
 
-MetaMenu = {}
+local MetaMenu = {}
 MetaMenu.__index = Menu
 
 function Menu.New(title, flags)
@@ -470,10 +471,6 @@ end
 
 -- Renders the menus and components
 function MenuManager.Draw()
-    if engine.GetServerIP() ~= "" and engine.IsGameUIVisible() == false then
-        return
-    end
-
     -- Don't draw if we should ignore screenshots
     if gui.GetValue("clean screenshots") == 1 and engine.IsTakingScreenshot() then
         return
@@ -490,6 +487,10 @@ function MenuManager.Draw()
     for k, vMenu in pairs(MenuManager.Menus) do
         if not vMenu.Visible then
             goto continue
+        end
+
+        if engine.GetServerIP() ~= "" and engine.IsGameUIVisible() == false and (vMenu.Flags & MenuFlags.ShowAlways == 0) then
+            return
         end
 
         local tbHeight = 20
@@ -569,7 +570,7 @@ function MenuManager.DrawDebug()
     end
 end
 
--- Callbacks
+-- Register Callbacks
 callbacks.Unregister("Draw", "Draw_MenuManager")
 callbacks.Register("Draw", "Draw_MenuManager", MenuManager.Draw)
 
