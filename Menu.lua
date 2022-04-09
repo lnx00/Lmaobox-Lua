@@ -6,7 +6,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.0,
+    Version = 1.1,
     DebugInfo = false
 }
 
@@ -99,6 +99,10 @@ function Checkbox.New(label, value)
     return self
 end
 
+function Checkbox:GetValue()
+    return self.Value
+end
+
 function Checkbox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
     local chkSize = math.floor(lblHeight * 1.4)
@@ -189,7 +193,7 @@ function Combobox.New(label, options)
 
     local self = setmetatable({}, Combobox)
     self.ID = MenuManager.CurrentID
-    self.Label = label
+    self.Label = label .. " | V"
     self.Options = options
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
@@ -285,7 +289,7 @@ function MultiCombobox.New(label, options)
 
     local self = setmetatable({}, MultiCombobox)
     self.ID = MenuManager.CurrentID
-    self.Label = label
+    self.Label = label .. " | V"
     self.Options = options
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
