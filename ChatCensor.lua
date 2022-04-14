@@ -10,14 +10,25 @@ local options = {
     PrintToConsole = false
 }
 
+local randMsg = {
+    "?", "what", "No",
+    "true", "IKR", "wtf",
+    "lol", "Lmao", "omg",
+    "Why", "Bot", "..."
+}
+
+local function GetRandomMessage()
+    return randMsg[math.random(#randMsg)]
+end
+
 local function GetClearMessage(pVictim)
-    local chatMessage = "?\n" .. pVictim .. ":\n\n" ..
+    local chatMessage = GetRandomMessage() .. "\n" .. pVictim .. ":\n\n" ..
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ..
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ..
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ..
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ..
     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ..
-    "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+    "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 
     return chatMessage
 end
@@ -37,7 +48,6 @@ local function DispatchUserMessage( msg )
     if not ClearChat then return end
 
     if msg:GetID() == SayText2 then
-        --msg:SetCurBit(8)
         msg:SetCurBit(1)
         local entIdx = msg:ReadByte()
         msg:SetCurBit(8)
@@ -80,5 +90,5 @@ local function DispatchUserMessage( msg )
     end
 end
 
-callbacks.Unregister( "DispatchUserMessage", "ChatCensor_DispatchUserMessage" );
+callbacks.Unregister("DispatchUserMessage", "ChatCensor_DispatchUserMessage");
 callbacks.Register("DispatchUserMessage", "ChatCensor_DispatchUserMessage", DispatchUserMessage)
