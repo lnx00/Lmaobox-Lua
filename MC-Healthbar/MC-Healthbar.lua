@@ -5,7 +5,7 @@
 ]]
 
 local options = {
-    X = 0.25,
+    X = 0.35,
     Y = 0.7,
     Size = 32
 }
@@ -30,7 +30,7 @@ local texHeartNone = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_None.p
 
 local function Draw()
     local pLocal = entities.GetLocalPlayer()
-    if not pLocal then return end
+    if not pLocal or not pLocal:IsAlive() then return end
 
     local sWidth, sHeight = draw.GetScreenSize()
     local xPos = math.floor(sWidth * options.X)
