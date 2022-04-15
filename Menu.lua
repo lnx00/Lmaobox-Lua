@@ -6,7 +6,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.1,
+    Version = 1.2,
     DebugInfo = false
 }
 
