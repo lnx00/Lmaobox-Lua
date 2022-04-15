@@ -32,12 +32,14 @@ local menu = Menu.Create("Title", flags)
 The Menu Library allows you to use various UI components that are already fully implemented and working. But you can also create your own components if you want.
 
 ### Label
+![Label](https://i.imgur.com/knK7AOk.png)
 Simple label with a given text.
 ```
 MenuLib.Label("Text")
 ```
 
 ### Checkbox
+![Label](https://i.imgur.com/ugksbLr.png)
 Allows you to toggle between on/off.
 ```
 MenuLib.Checkbox("Label", value)
@@ -45,24 +47,28 @@ MenuLib.Checkbox("Label", value)
 ```
 
 ### Button
+![Button](https://i.imgur.com/dOVKTG4.png)
 Runs a given callback when the button is being pressed.
 ```
 MenuLib.Button("Label", callback)
 ```
 
 ### Slider
+![Slider](https://i.imgur.com/363zFtX.png)
 Allows you to select a value between a given minimum and maximum
 ```
 MenuLib.Slider("Label", min, max, value)
 ```
 
 ### Textbox
+![Textbox](https://i.imgur.com/vo0j8n5.png)
 Allows you to enter a text. It's very basic though and only allows a small set of characters.
 ```
 MenuLib.Textbox("Label", value)
 ```
 
 ### Combobox
+![Combobox](https://i.imgur.com/VthXZZp.png)
 Allows you to select one of many given options in a dropdown.
 ```
 local combo = {
@@ -74,6 +80,7 @@ MenuLib.Combo("Label", combo)
 ```
 
 ### Multi Combobox
+![Multibox](https://i.imgur.com/bwPnnaf.png)
 Allows you to select multiple options in a dropdown.
 ```
 local multiCombo = {
