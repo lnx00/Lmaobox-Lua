@@ -36,6 +36,8 @@ local function UpdateMouseState()
     lastMouseState = mouseState
 end
 
+local function Clamp(n, low, high) return math.min(math.max(n, low), high) end
+
 --[[ Component Class ]]
 local Component = {
     ID = 0,
@@ -174,6 +176,60 @@ function Button:Render(menu)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (btnWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (btnHeight / 2) - (lblHeight / 2)), self.Label)
 
     menu.Cursor.Y = menu.Cursor.Y + btnHeight + menu.Space
+end
+
+--[[ Slider Component ]]
+local Slider = {
+    Label = "New Slider",
+    Min = 0,
+    Max = 100,
+    Value = 0
+}
+Slider.__index = Slider
+setmetatable(Slider, Component)
+
+function Slider.New(label, min, max, value)
+    local self = setmetatable({}, Slider)
+    self.ID = MenuManager.CurrentID
+    self.Label = label
+    self.Min = min
+    self.Max = max
+    self.Value = value
+
+    MenuManager.CurrentID = MenuManager.CurrentID + 1
+    return self
+end
+
+function Slider:GetValue()
+    return self.Value
+end
+
+function Slider:Render(menu)
+    local lblWidth, lblHeight = draw.GetTextSize(self.Label .. ": " .. self.Value)
+    local sliderWidth = menu.Width - (menu.Space * 2)
+    local sliderHeight = 20
+    local dragX = math.floor((self.Value / math.abs(self.Max - self.Min)) * sliderWidth)
+
+    -- Interaction
+    if MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            dragX = Clamp(input.GetMousePos()[1] - (menu.X + menu.Cursor.X), 0, sliderWidth)
+            self.Value = math.floor((dragX / sliderWidth) * math.abs(self.Max - self.Min))
+        end
+    end
+
+    -- Drawing
+    draw.Color(80, 80, 80, 255)
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth, menu.Y + menu.Cursor.Y + sliderHeight)
+    draw.Color(150, 150, 150, 150)
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + dragX, menu.Y + menu.Cursor.Y + sliderHeight)
+
+    -- Draw the slider label and value centered inside the slider
+    draw.SetFont(MenuManager.Font)
+    draw.Color(255, 255, 255, 255)
+    draw.Text(math.floor(menu.X + menu.Cursor.X + (sliderWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (sliderHeight / 2) - (lblHeight / 2)), self.Label .. ": " .. self.Value)
+
+    menu.Cursor.Y = menu.Cursor.Y + sliderHeight + menu.Space
 end
 
 --[[ Combobox Compnent ]]
@@ -463,6 +519,11 @@ end
 
 function MenuManager.Button(label, callback)
     return Button.New(label, callback)
+end
+
+function MenuManager.Slider(label, min, max, value)
+    value = value or min
+    return Slider.New(label, min, max, value)
 end
 
 function MenuManager.Combo(label, options)

@@ -50,6 +50,12 @@ Runs a given callback when the button is being pressed.
 MenuLib.Button("Label", callback)
 ```
 
+### Slider
+Allows you to select a value between a given minimum and maximum
+```
+MenuLib.Slider("Label", min, max, value)
+```
+
 ### Combobox
 Allows you to select one of many given options in a dropdown.
 ```
@@ -69,6 +75,7 @@ local multiCombo = {
   { "Option 2", false },
   [...]
 }
+MenuLib.MultiCombo("Label", multiCombo)
 ```
 
 ### Menu
