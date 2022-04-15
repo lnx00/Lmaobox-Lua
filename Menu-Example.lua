@@ -11,6 +11,12 @@ function OnButtonPress()
 end
 menu:AddComponent(MenuLib.Button("Press Me!", OnButtonPress))
 
+menu:AddComponent(MenuLib.Slider("Text Size", 0, 100, 50))
+menu:AddComponent(MenuLib.Label(""))
+
+menu:AddComponent(MenuLib.Textbox("Write something..."))
+menu:AddComponent(MenuLib.Label(""))
+
 -- Combobox
 local itemCombo = {
     "Label",

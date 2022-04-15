@@ -338,6 +338,10 @@ function Combobox.New(label, options)
     return self
 end
 
+function Combobox:GetSelectedIndex()
+    return self.SelectedIndex
+end
+
 function Combobox:Select(index)
     self.SelectedIndex = index
     self.Selected = self.Options[index]
@@ -582,10 +586,11 @@ function MenuManager.AddMenu(menu)
 end
 
 function MenuManager.RemoveMenu(menu)
-    for i, v in ipairs(MenuManager.Menus) do
-        if v.ID == menu.ID then
-            table.remove(MenuManager.Menus, i)
-            break
+    for k, vMenu in pairs(MenuManager.Menus) do
+        if vMenu.ID == menu.ID then
+            vMenu.Components = {}
+            table.remove(MenuManager.Menus, k)
+            return
         end
     end
 end

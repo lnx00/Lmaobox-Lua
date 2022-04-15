@@ -44,7 +44,7 @@ function Utils.Sanitize(pString)
     return pString
 end
 
--- find element in table by id
+-- Finds an Element in a table by ID
 function Utils.FindElementByID(pTable, pID)
     for k, v in pairs(pTable) do
         if v.ID == pID then
@@ -52,6 +52,14 @@ function Utils.FindElementByID(pTable, pID)
         end
     end
     return nil
+end
+
+-- Converts a given Hex Color to RGB
+function Utils.HexToRGB(pHex)
+    local r = tonumber(string.sub(pHex, 1, 2), 16)
+    local g = tonumber(string.sub(pHex, 3, 4), 16)
+    local b = tonumber(string.sub(pHex, 5, 6), 16)
+    return { r, g, b }
 end
 
 return Utils
