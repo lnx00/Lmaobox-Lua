@@ -6,7 +6,7 @@
 
 local options = {
     X = 0.35,
-    Y = 0.7,
+    Y = 0.75,
     Size = 32
 }
 
@@ -22,6 +22,9 @@ local function ReadFileBinary(path)
 end
 
 -- Load the textures
+local texArmorFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_Full.png"))
+local texArmorHalf = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_Half.png"))
+local texArmorNone = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_None.png"))
 local texGoldFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Gold_Full.png"))
 local texGoldHalf = draw.CreateTexturePNG(ReadFileBinary("Textures/Gold_Half.png"))
 local texHeartFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_Full.png"))
@@ -72,6 +75,29 @@ local function Draw()
                 draw.TexturedRect(texGoldFull, cX, yPos, cX + options.Size, yPos + options.Size)
             elseif absorbHalfs / 2 >= i + 1 then
                 draw.TexturedRect(texGoldHalf, cX, yPos, cX + options.Size, yPos + options.Size)
+            end
+        end
+    end
+
+    -- Armor (Medic only)
+    local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
+    if pWeapon and pWeapon:IsMedigun() then
+        local chargeLevel = pWeapon:GetPropFloat("LocalTFWeaponMedigunData", "m_flChargeLevel")
+        if chargeLevel then
+            local fullArmors = math.floor(4 * chargeLevel)
+            local halfArmors = math.floor(8 * chargeLevel)
+
+            for i = 0, 3 do
+                local cX = xPos + (i * options.Size)
+                local cY = yPos - options.Size - 1
+
+                if i + 1 <= fullArmors then
+                    draw.TexturedRect(texArmorFull, cX, cY, cX + options.Size, cY + options.Size)
+                elseif (fullArmors + 1 == i + 1) and not (math.floor(halfArmors) % 2 == 0) then
+                    draw.TexturedRect(texArmorHalf, cX, cY, cX + options.Size, cY + options.Size)
+                else
+                    draw.TexturedRect(texArmorNone, cX, cY, cX + options.Size, cY + options.Size)
+                end
             end
         end
     end
