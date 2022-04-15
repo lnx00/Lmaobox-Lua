@@ -608,15 +608,20 @@ function MenuManager.Slider(label, min, max, value)
 end
 
 function MenuManager.Textbox(label, value)
+    value = value or ""
     return Textbox.New(label, value)
 end
 
 function MenuManager.Combo(label, options)
-    return Combobox.New(label, options)    
+    return Combobox.New(label, options)
 end
 
 function MenuManager.MultiCombo(label, options)
     return MultiCombobox.New(label, options)
+end
+
+function MenuManager.Seperator()
+    return Label.New("")
 end
 
 -- Renders the menus and components
