@@ -92,3 +92,5 @@ end
 
 callbacks.Unregister("DispatchUserMessage", "ChatCensor_DispatchUserMessage");
 callbacks.Register("DispatchUserMessage", "ChatCensor_DispatchUserMessage", DispatchUserMessage)
+
+client.Command('play "ui/buttonclick"', true)
