@@ -110,7 +110,7 @@ function Checkbox:Render(menu)
     local chkSize = math.floor(lblHeight * 1.4)
 
     -- Interaction
-    if mouseUp and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize, menu.Y + menu.Cursor.Y + chkSize) then
+    if mouseUp and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize + menu.Space + lblWidth, menu.Y + menu.Cursor.Y + chkSize) then
         self.Value = not self.Value
     end
 
@@ -211,7 +211,7 @@ function Slider:Render(menu)
     local dragX = math.floor((self.Value / math.abs(self.Max - self.Min)) * sliderWidth)
 
     -- Interaction
-    if MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
+    if dragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
             dragX = Clamp(input.GetMousePos()[1] - (menu.X + menu.Cursor.X), 0, sliderWidth)
             self.Value = math.floor((dragX / sliderWidth) * math.abs(self.Max - self.Min))
