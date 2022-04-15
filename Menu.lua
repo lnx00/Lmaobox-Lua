@@ -6,7 +6,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.2,
+    Version = 1.3,
     DebugInfo = false
 }
 
@@ -23,6 +23,25 @@ local lastMouseState = false
 local mouseUp = false
 local dragID = 0
 local dragOffset = {0, 0}
+
+local inputMap = {}
+for i = 0, 9 do inputMap[i + 1] = tostring(i) end
+for i = 65, 90 do inputMap[i - 54] = string.char(i) end
+
+local function GetCurrentKey()
+    for i, keyText in ipairs(inputMap) do
+        if input.IsButtonDown(i) then
+            return keyText
+        end
+    end
+
+    if input.IsButtonDown(KEY_SPACE) then return "SPACE" end
+    if input.IsButtonDown(KEY_BACKSPACE) then return "BACKSPACE" end
+    if input.IsButtonDown(KEY_COMMA) then return "," end
+    if input.IsButtonDown(KEY_PERIOD) then return "." end
+    if input.IsButtonDown(KEY_MINUS) then return "-" end
+    return nil
+end
 
 local function MouseInBounds(pX, pY, pX2, pY2)
     local mX = input.GetMousePos()[1]
@@ -224,12 +243,75 @@ function Slider:Render(menu)
     draw.Color(150, 150, 150, 150)
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + dragX, menu.Y + menu.Cursor.Y + sliderHeight)
 
-    -- Draw the slider label and value centered inside the slider
     draw.SetFont(MenuManager.Font)
     draw.Color(255, 255, 255, 255)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (sliderWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (sliderHeight / 2) - (lblHeight / 2)), self.Label .. ": " .. self.Value)
 
     menu.Cursor.Y = menu.Cursor.Y + sliderHeight + menu.Space
+end
+
+--[[ Textbox Component ]]
+local Textbox = {
+    Label = "New Textbox",
+    Value = "",
+    _LastKey = nil
+}
+Textbox.__index = Textbox
+setmetatable(Textbox, Component)
+
+function Textbox.New(label, value)
+    local self = setmetatable({}, Textbox)
+    self.ID = MenuManager.CurrentID
+    self.Label = label
+    self.Value = value
+
+    MenuManager.CurrentID = MenuManager.CurrentID + 1
+    return self
+end
+
+function Textbox:GetValue()
+    return self.Value
+end
+
+function Textbox:Render(menu)
+    local lblWidth, lblHeight = draw.GetTextSize(self.Value)
+    local boxWidth = menu.Width - (menu.Space * 2)
+    local boxHeight = 20
+
+    -- Interaction
+    if dragID == 0 and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
+        local key = GetCurrentKey()
+        if not key and self._LastKey then
+            if self._LastKey == "SPACE" then
+                self.Value = self.Value .. " "
+            elseif self._LastKey == "BACKSPACE" then
+                self.Value = self.Value:sub(1, -2)
+            else
+                if input.IsButtonDown(KEY_LSHIFT) then
+                    self.Value = self.Value .. string.upper(self._LastKey)
+                else
+                    self.Value = self.Value .. string.lower(self._LastKey)
+                end
+            end
+            self._LastKey = nil
+        end
+        self._LastKey = key
+    end
+
+    -- Drawing
+    draw.Color(60, 60, 60, 255)
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight)
+
+    draw.SetFont(MenuManager.Font)
+    if self.Value == "" then
+        draw.Color(180, 180, 180, 255)
+        draw.Text(menu.X + menu.Cursor.X + menu.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Label)
+    else
+        draw.Color(255, 255, 255, 255)
+        draw.Text(menu.X + menu.Cursor.X + menu.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Value)
+    end
+
+    menu.Cursor.Y = menu.Cursor.Y + boxHeight + menu.Space
 end
 
 --[[ Combobox Compnent ]]
@@ -473,7 +555,6 @@ function Menu:AddComponent(component)
     return component
 end
 
--- remove a given component
 function Menu:RemoveComponent(component)
     for k, vComp in pairs(self.Components) do
         if vComp.ID == component.ID then
@@ -524,6 +605,10 @@ end
 function MenuManager.Slider(label, min, max, value)
     value = value or min
     return Slider.New(label, min, max, value)
+end
+
+function MenuManager.Textbox(label, value)
+    return Textbox.New(label, value)
 end
 
 function MenuManager.Combo(label, options)
