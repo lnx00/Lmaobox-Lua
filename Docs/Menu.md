@@ -56,6 +56,12 @@ Allows you to select a value between a given minimum and maximum
 MenuLib.Slider("Label", min, max, value)
 ```
 
+### Textbox
+Allows you to enter a text. It's very basic though and only allows a small set of characters.
+```
+MenuLib.Textbox("Label", value)
+```
+
 ### Combobox
 Allows you to select one of many given options in a dropdown.
 ```
