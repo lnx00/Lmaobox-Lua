@@ -30,7 +30,7 @@ local texHeartNone = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_None.p
 
 local function Draw()
     local pLocal = entities.GetLocalPlayer()
-    if not pLocal or not pLocal:IsAlive() then return end
+    if not pLocal or engine.IsGameUIVisible() or not pLocal:IsAlive() then return end
 
     local sWidth, sHeight = draw.GetScreenSize()
     local xPos = math.floor(sWidth * options.X)
@@ -38,13 +38,13 @@ local function Draw()
 
     local halfHeart = pLocal:GetMaxHealth() / 20
     local halfHearts = pLocal:GetHealth() / halfHeart
-    local fullHearts = (halfHearts / 20) * 10
+    local fullHearts = math.floor((halfHearts / 20) * 10)
 
     local maxBuffHealth = (math.floor((pLocal:GetMaxHealth() * 1.5) / 10) * 10) - 10
     local maxAdditionalHealth = maxBuffHealth - pLocal:GetMaxHealth()
     local absorptionHealth = pLocal:GetHealth() - pLocal:GetMaxHealth()
-    local absorbHalfs = (absorptionHealth / maxAdditionalHealth) * 20
-    local absorbFulls = (absorbHalfs - 1) / 2
+    local absorbHalfs = math.floor((absorptionHealth / maxAdditionalHealth) * 20)
+    local absorbFulls = math.floor((absorbHalfs - 1) / 2)
     draw.Color(255, 255, 255, 255)
 
     -- Draw Hearts
@@ -84,6 +84,8 @@ local function Unload()
     draw.DeleteTexture(texHeartFull)
     draw.DeleteTexture(texHeartHalf)
     draw.DeleteTexture(texHeartNone)
+
+    client.Command('play "ui/buttonclickrelease"', true)
 end
 
 callbacks.Unregister("Draw", "MCHB_Draw");
@@ -91,3 +93,5 @@ callbacks.Register("Draw", "MCHB_Draw", Draw)
 
 callbacks.Unregister("Unload", "MCHB_Unload");
 callbacks.Register("Unload", "MCHB_Unload", Unload)
+
+client.Command('play "ui/buttonclick"', true)
