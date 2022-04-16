@@ -10,26 +10,15 @@ local options = {
     Size = 32
 }
 
-local function ReadFileBinary(path)
-    local file = io.open(path, "rb")
-    if not file then
-        print("File not found!")
-        return nil
-     end
-    local content = file:read("*all")
-    file:close()
-    return content
-end
-
 -- Load the textures
-local texArmorFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_Full.png"))
-local texArmorHalf = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_Half.png"))
-local texArmorNone = draw.CreateTexturePNG(ReadFileBinary("Textures/Armor_None.png"))
-local texGoldFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Gold_Full.png"))
-local texGoldHalf = draw.CreateTexturePNG(ReadFileBinary("Textures/Gold_Half.png"))
-local texHeartFull = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_Full.png"))
-local texHeartHalf = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_Half.png"))
-local texHeartNone = draw.CreateTexturePNG(ReadFileBinary("Textures/Heart_None.png"))
+local texArmorFull = draw.CreateTexture("Textures/Armor_Full.png")
+local texArmorHalf = draw.CreateTexture("Textures/Armor_Half.png")
+local texArmorNone = draw.CreateTexture("Textures/Armor_None.png")
+local texGoldFull = draw.CreateTexture("Textures/Gold_Full.png")
+local texGoldHalf = draw.CreateTexture("Textures/Gold_Half.png")
+local texHeartFull = draw.CreateTexture("Textures/Heart_Full.png")
+local texHeartHalf = draw.CreateTexture("Textures/Heart_Half.png")
+local texHeartNone = draw.CreateTexture("Textures/Heart_None.png")
 
 local function Draw()
     local pLocal = entities.GetLocalPlayer()

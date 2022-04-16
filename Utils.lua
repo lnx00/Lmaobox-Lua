@@ -62,4 +62,18 @@ function Utils.HexToRGB(pHex)
     return { r, g, b }
 end
 
+-- Scale a given rect (x, y, width, height) to a given width and height but keep its aspect ratio
+function Utils.ScaleRect(pRect, pWidth, pHeight)
+    local x, y, w, h = pRect:Unpack()
+    local aspectRatio = w / h
+    local newWidth = pWidth
+    local newHeight = pHeight
+    if aspectRatio > 1 then
+        newHeight = pWidth / aspectRatio
+    else
+        newWidth = pHeight * aspectRatio
+    end
+    return { x, y, newWidth, newHeight }
+end
+
 return Utils
