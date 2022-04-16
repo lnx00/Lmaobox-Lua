@@ -2,16 +2,18 @@ local options = {
     X = 0.15,
     Y = 0.05,
     Width = 260,
-    Height = 465,
+    Height = 530,
     Font = draw.CreateFont("TF2 Build", 14, 510, FONTFLAG_OUTLINE)
 }
 
-local selectedOption = 1
+local selectedOption = 10
+local lastKey = 0
 
 local optType = {
     BOOL = 1,
     INT = 2,
-    KEY = 3
+    SWITCH = 3,
+    KEY = 4
 }
 
 local menuOptions = {
@@ -25,7 +27,7 @@ local menuOptions = {
         { Name = "Ignore Steam Friends", Option = "ignore steam friends", Type = optType.BOOL },
         { Name = "Ignore Deadringer", Option = "ignore deadringer", Type = optType.BOOL },
         { Name = "Ignore Cloaked", Option = "ignore cloaked", Type = optType.BOOL },
-        { Name = "Melee Aim", Option = "melee aimbot", Type = optType.INT },
+        { Name = "Melee Aim", Option = "melee aimbot", Values = { "Legit", "Rage", "Always" }, Type = optType.SWITCH },
     },
 
     Stuff = {
@@ -38,16 +40,30 @@ local menuOptions = {
         { Name = "Enemy only", Option = "enemy only", Type = optType.BOOL },
         { Name = "Steam Friends", Option = "friends", Type = optType.BOOL },
         { Name = "Name", Option = "name", Type = optType.BOOL },
-        { Name = "Health", Option = "health", Type = optType.BOOL },
+        { Name = "Health", Option = "health", Values = { "Value", "Bar", "Both" }, Type = optType.SWITCH },
         { Name = "Weapon", Option = "weapon", Type = optType.BOOL },
         { Name = "Ubercharge", Option = "ubercharge", Type = optType.BOOL },
         { Name = "Distance", Option = "distance", Type = optType.BOOL },
-        { Name = "Class", Option = "class", Type = optType.BOOL },
-        { Name = "World ESP", Option = "ammo/medkit", Type = optType.BOOL },
+        { Name = "Class", Option = "class", Values = { "Text", "Icon" }, Type = optType.SWITCH },
+        { Name = "World ESP", Option = "ammo/medkit", Values = { "Text", "Glow", "Both" }, Type = optType.SWITCH },
         { Name = "Radar", Option = "radar", Type = optType.BOOL },
-        { Name = "Radar Size", Option = "radar size", Type = optType.BOOL },
+        { Name = "Radar Size", Option = "radar size", Type = optType.INT },
+    },
+
+    MISC = {
+        { Name = "Anti-Cloak/Disguise", Option = "anti-disuise", Type = optType.BOOL },
+        { Name = "Bunny Hop", Option = "bunny hop", Type = optType.BOOL },
+        { Name = "Chat Spam", Option = "chat spammer", Values = { "Branded", "Branded+Empty", "Empty", "Custom", "Custom+Empty" }, Type = optType.SWITCH },
     }
 }
+
+local function GetSwitchText(i, values)
+    if i == 0 then
+        return "OFF"
+    end
+
+    return values[i] or "OFF"
+end
 
 local function Draw()
     draw.SetFont(options.Font)
@@ -85,6 +101,8 @@ local function Draw()
             currentX = xPos + 15
             local oWidth, oHeight = draw.GetTextSize(vOption.Name)
             local guiValue = gui.GetValue(vOption.Option)
+            
+            -- Drawing
             if currentOption == selectedOption then
                 draw.Color(160, 160, 160, 180)
                 draw.FilledRect(xPos, currentY, xPos + options.Width, currentY + oHeight)
@@ -98,6 +116,7 @@ local function Draw()
 
             local valueText = ""
             currentX = xPos + options.Width - 10
+
             if vOption.Type == optType.BOOL then
                 if guiValue == 1 then
                     valueText = "ON"
@@ -106,11 +125,41 @@ local function Draw()
                 end
             elseif vOption.Type == optType.INT then
                 valueText = guiValue
+            elseif vOption.Type == optType.SWITCH then
+                valueText = GetSwitchText(guiValue, vOption.Values)
             elseif vOption.Type == optType.KEY then
                 valueText = guiValue -- TODO: Get Key name
             end
+
             local vWidth, vHeight = draw.GetTextSize(valueText)
             draw.Text(xPos + options.Width - (vWidth + 30), currentY, valueText)
+
+            -- Interaction
+            if currentOption == selectedOption then
+                if input.IsButtonDown(KEY_LEFT) then
+                    if vOption.Type == optType.BOOL then
+                        gui.SetValue(vOption.Option, 1 - guiValue)
+                    elseif vOption.Type == optType.INT then
+                        local newValue = guiValue + 1
+                        if newValue > vOption.Max then
+                            newValue = vOption.Min
+                        end
+                        gui.SetValue(vOption.Option, newValue)
+                    elseif vOption.Type == optType.SWITCH then
+                        local newValue = guiValue + 1
+                        if newValue > vOption.Max then
+                            newValue = vOption.Min
+                        end
+                        gui.SetValue(vOption.Option, newValue)
+                    elseif vOption.Type == optType.KEY then
+                        local newValue = guiValue + 1
+                        if newValue > vOption.Max then
+                            newValue = vOption.Min
+                        end
+                        gui.SetValue(vOption.Option, newValue)
+                    end
+                end
+            end
 
             currentY = currentY + oHeight
             currentOption = currentOption + 1
