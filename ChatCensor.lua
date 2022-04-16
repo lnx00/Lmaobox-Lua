@@ -6,9 +6,10 @@
 ClearChat = true
 
 local options = {
-    PrintToChat = true,
-    PrintToConsole = false
+    PrintToChat = true
 }
+
+local lastMessage = nil
 
 local randMsg = {
     "?", "what", "No",
@@ -64,7 +65,16 @@ local function DispatchUserMessage( msg )
             return
         end
 
-        -- clean the message
+        -- Print the last message
+        if lastMessage and not lastMessage == "" then
+            if options.PrintToChat then
+                client.ChatPrintf(lastMessage)
+                lastMessage = nil
+            end
+        end
+
+        -- Clean the message
+        local origMessage = message
         message = message:lower()
         message = message:gsub("%s+", "")
         message = message:gsub("4", "a")
@@ -80,12 +90,7 @@ local function DispatchUserMessage( msg )
             local victimName = GetRandomPlayerName() or "Server"
 
             client.ChatTeamSay(GetClearMessage(victimName))
-            if options.PrintToChat then
-                client.ChatPrintf("\x06[\x07FF1122CC\x06] \x05" .. playerName .. " \x01wrote \x05" .. message)
-            end
-            if options.PrintToConsole then
-                print("[ChatCensor] " .. playerName .. " wrote " .. message)
-            end
+            lastMessage = "\x06[\x07FF1122CC\x06] \x05" .. playerName .. " \x01wrote \x05" .. origMessage
         end
     end
 end
