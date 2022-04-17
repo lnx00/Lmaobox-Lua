@@ -19,6 +19,11 @@ MenuFlags = {
     ShowAlways = 1 << 4 -- Show menu when ingame
 }
 
+ItemFlags = {
+    None = 0,
+    FullWidth = 1 << 0, -- Fill width of menu
+}
+
 local lastMouseState = false
 local mouseUp = false
 local dragID = 0
@@ -60,13 +65,15 @@ local function Clamp(n, low, high) return math.min(math.max(n, low), high) end
 --[[ Component Class ]]
 local Component = {
     ID = 0,
-    Visible = true
+    Visible = true,
+    Flags = ItemFlags.None
 }
 Component.__index = Component
 
 function Component.New()
     local self = setmetatable({}, Component)
     self.Visible = true
+    self.Flags = ItemFlags.None
 
     return self
 end
@@ -82,10 +89,13 @@ local Label = {
 Label.__index = Label
 setmetatable(Label, Component)
 
-function Label.New(label)
+function Label.New(label, flags)
+    flags = flags or ItemFlags.None
+
     local self = setmetatable({}, Label)
     self.ID = MenuManager.CurrentID
     self.Text = label
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -108,13 +118,15 @@ local Checkbox = {
 Checkbox.__index = Checkbox
 setmetatable(Checkbox, Component)
 
-function Checkbox.New(label, value)
+function Checkbox.New(label, value, flags)
     assert(type(value) == "boolean", "Checkbox value must be a boolean")
+    flags = flags or ItemFlags.None
 
     local self = setmetatable({}, Checkbox)
     self.ID = MenuManager.CurrentID
     self.Label = label
     self.Value = value
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -161,13 +173,15 @@ local Button = {
 Button.__index = Button
 setmetatable(Button, Component)
 
-function Button.New(label, callback)
+function Button.New(label, callback, flags)
     assert(type(callback) == "function", "Button callback must be a function")
+    flags = flags or ItemFlags.None
 
     local self = setmetatable({}, Button)
     self.ID = MenuManager.CurrentID
     self.Label = label
     self.Callback = callback
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -176,6 +190,10 @@ end
 function Button:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
     local btnWidth = lblWidth + (menu.Space * 4)
+    if self.Flags & ItemFlags.FullWidth ~= 0 then
+        btnWidth = menu.Width - (menu.Space * 2)
+    end
+
     local btnHeight = lblHeight + (menu.Space * 2)
     
     -- Interaction
@@ -207,13 +225,16 @@ local Slider = {
 Slider.__index = Slider
 setmetatable(Slider, Component)
 
-function Slider.New(label, min, max, value)
+function Slider.New(label, min, max, value, flags)
+    flags = flags or ItemFlags.None
+
     local self = setmetatable({}, Slider)
     self.ID = MenuManager.CurrentID
     self.Label = label
     self.Min = min
     self.Max = max
     self.Value = value
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -226,7 +247,7 @@ end
 function Slider:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label .. ": " .. self.Value)
     local sliderWidth = menu.Width - (menu.Space * 2)
-    local sliderHeight = 20
+    local sliderHeight = lblHeight + (menu.Space * 2)
     local dragX = math.floor((self.Value / math.abs(self.Max - self.Min)) * sliderWidth)
 
     -- Interaction
@@ -259,11 +280,14 @@ local Textbox = {
 Textbox.__index = Textbox
 setmetatable(Textbox, Component)
 
-function Textbox.New(label, value)
+function Textbox.New(label, value, flags)
+    flags = flags or ItemFlags.None
+    
     local self = setmetatable({}, Textbox)
     self.ID = MenuManager.CurrentID
     self.Label = label
     self.Value = value
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -326,13 +350,16 @@ local Combobox = {
 Combobox.__index = Combobox
 setmetatable(Combobox, Component)
 
-function Combobox.New(label, options)
+function Combobox.New(label, options, flags)
     assert(type(options) == "table", "Combobox options must be a table")
+    flags = flags or ItemFlags.None
 
     local self = setmetatable({}, Combobox)
     self.ID = MenuManager.CurrentID
     self.Label = label .. " | V"
     self.Options = options
+    self.Selected = options[1]
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -350,6 +377,10 @@ end
 function Combobox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
     local cmbWidth = lblWidth + (menu.Space * 4)
+    if self.Flags & ItemFlags.FullWidth ~= 0 then
+        cmbWidth = menu.Width - (menu.Space * 2)
+    end
+
     local cmbHeight = lblHeight + (menu.Space * 2)
 
     -- Interaction
@@ -426,13 +457,15 @@ local MultiCombobox = {
 MultiCombobox.__index = MultiCombobox
 setmetatable(MultiCombobox, Component)
 
-function MultiCombobox.New(label, options)
+function MultiCombobox.New(label, options, flags)
     assert(type(options) == "table", "Combobox options must be a table")
+    flags = flags or ItemFlags.None
 
     local self = setmetatable({}, MultiCombobox)
     self.ID = MenuManager.CurrentID
     self.Label = label .. " | V"
     self.Options = options
+    self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
     return self
@@ -445,6 +478,10 @@ end
 function MultiCombobox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
     local cmbWidth = lblWidth + (menu.Space * 4)
+    if self.Flags & ItemFlags.FullWidth ~= 0 then
+        cmbWidth = menu.Width - (menu.Space * 2)
+    end
+
     local cmbHeight = lblHeight + (menu.Space * 2)
 
     -- Interaction
@@ -574,6 +611,7 @@ end
 
 --[[ Menu Manager ]]
 function MenuManager.Create(title, flags)
+    assert(#MenuManager.Menus < 30, "Are you sure that you want to create more than 30 menus?")
     flags = flags or MenuFlags.None
 
     local menu = Menu.New(title, flags)
@@ -595,38 +633,38 @@ function MenuManager.RemoveMenu(menu)
     end
 end
 
-function MenuManager.Label(text)
-    return Label.New(text)
+function MenuManager.Label(text, flags)
+    return Label.New(text, flags)
 end
 
-function MenuManager.Checkbox(label, value)
-    return Checkbox.New(label, value)
+function MenuManager.Checkbox(label, value, flags)
+    return Checkbox.New(label, value, flags)
 end
 
-function MenuManager.Button(label, callback)
-    return Button.New(label, callback)
+function MenuManager.Button(label, callback, flags)
+    return Button.New(label, callback, flags)
 end
 
-function MenuManager.Slider(label, min, max, value)
+function MenuManager.Slider(label, min, max, value, flags)
     value = value or min
-    return Slider.New(label, min, max, value)
+    return Slider.New(label, min, max, value, flags)
 end
 
-function MenuManager.Textbox(label, value)
+function MenuManager.Textbox(label, value, flags)
     value = value or ""
-    return Textbox.New(label, value)
+    return Textbox.New(label, value, flags)
 end
 
-function MenuManager.Combo(label, options)
-    return Combobox.New(label, options)
+function MenuManager.Combo(label, options, flags)
+    return Combobox.New(label, options, flags)
 end
 
-function MenuManager.MultiCombo(label, options)
-    return MultiCombobox.New(label, options)
+function MenuManager.MultiCombo(label, options, flags)
+    return MultiCombobox.New(label, options, flags)
 end
 
-function MenuManager.Seperator()
-    return Label.New("")
+function MenuManager.Seperator(flags)
+    return Label.New("", flags)
 end
 
 -- Renders the menus and components
