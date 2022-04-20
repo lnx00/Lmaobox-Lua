@@ -94,6 +94,9 @@ end
 
 -- Unload the textures
 local function Unload()
+    draw.DeleteTexture(texArmorFull)
+    draw.DeleteTexture(texArmorHalf)
+    draw.DeleteTexture(texArmorNone)
     draw.DeleteTexture(texGoldFull)
     draw.DeleteTexture(texGoldHalf)
     draw.DeleteTexture(texHeartFull)

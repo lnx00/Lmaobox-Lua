@@ -142,7 +142,7 @@ local function Draw()
             local vWidth, vHeight = draw.GetTextSize(valueText)
             draw.Text(xPos + options.Width - (vWidth + 30), currentY, valueText)
 
-            -- Interaction
+            -- Option interaction
             if currentOption == selectedOption then
                 if ButtonReleased(KEY_LEFT) then
                     if vOption.Type == optType.BOOL then
@@ -164,7 +164,7 @@ local function Draw()
         end
     end
 
-    -- Increase of decrease the selected option by the arrow keys
+    -- Menu interaction
     if ButtonReleased(KEY_UP) then
         selectedOption = selectedOption - 1
         if selectedOption < 1 then
