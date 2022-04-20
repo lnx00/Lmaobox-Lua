@@ -1,25 +1,25 @@
 local options = {
     X = 0.15,
     Y = 0.05,
-    Width = 260,
-    Height = 530,
+    Width = 250,
+    Height = 440,
+    MenuKey = KEY_END,
     Font = draw.CreateFont("TF2 Build", 14, 510, FONTFLAG_OUTLINE)
 }
 
+local menuVisible = true
 local selectedOption = 10
-local lastKey = 0
+local lastButton = 0
+local anyButtonDown = false
 
 local optType = {
     BOOL = 1,
-    INT = 2,
-    SWITCH = 3,
-    KEY = 4
+    INT = 2
 }
 
 local menuOptions = {
     Aim = {
         { Name = "Aim Bot", Option = "aim bot", Type = optType.BOOL },
-        { Name = "Aim Key", Option = "aim key", Type = optType.KEY },
         { Name = "Auto Shoot", Option = "auto shoot", Type = optType.BOOL },
         { Name = "Target Lock", Option = "preserve target", Type = optType.BOOL },
         { Name = "Aim Sentry", Option = "aim sentry", Type = optType.BOOL },
@@ -27,7 +27,6 @@ local menuOptions = {
         { Name = "Ignore Steam Friends", Option = "ignore steam friends", Type = optType.BOOL },
         { Name = "Ignore Deadringer", Option = "ignore deadringer", Type = optType.BOOL },
         { Name = "Ignore Cloaked", Option = "ignore cloaked", Type = optType.BOOL },
-        { Name = "Melee Aim", Option = "melee aimbot", Values = { "Legit", "Rage", "Always" }, Type = optType.SWITCH },
     },
 
     Stuff = {
@@ -40,32 +39,45 @@ local menuOptions = {
         { Name = "Enemy only", Option = "enemy only", Type = optType.BOOL },
         { Name = "Steam Friends", Option = "friends", Type = optType.BOOL },
         { Name = "Name", Option = "name", Type = optType.BOOL },
-        { Name = "Health", Option = "health", Values = { "Value", "Bar", "Both" }, Type = optType.SWITCH },
         { Name = "Weapon", Option = "weapon", Type = optType.BOOL },
         { Name = "Ubercharge", Option = "ubercharge", Type = optType.BOOL },
         { Name = "Distance", Option = "distance", Type = optType.BOOL },
-        { Name = "Class", Option = "class", Values = { "Text", "Icon" }, Type = optType.SWITCH },
-        { Name = "World ESP", Option = "ammo/medkit", Values = { "Text", "Glow", "Both" }, Type = optType.SWITCH },
         { Name = "Radar", Option = "radar", Type = optType.BOOL },
-        { Name = "Radar Size", Option = "radar size", Type = optType.INT },
+        { Name = "Radar Size", Option = "radar size", Min = 20, Max = 270, Type = optType.INT },
     },
 
     MISC = {
         { Name = "Anti-Cloak/Disguise", Option = "anti-disuise", Type = optType.BOOL },
         { Name = "Bunny Hop", Option = "bunny hop", Type = optType.BOOL },
-        { Name = "Chat Spam", Option = "chat spammer", Values = { "Branded", "Branded+Empty", "Empty", "Custom", "Custom+Empty" }, Type = optType.SWITCH },
     }
 }
 
-local function GetSwitchText(i, values)
-    if i == 0 then
-        return "OFF"
+-- This is stupid but it works for now
+local function ButtonReleased(button)
+    if input.IsButtonDown(button) and button ~= lastButton then
+        lastButton = button
+        anyButtonDown = true
     end
 
-    return values[i] or "OFF"
+    if input.IsButtonDown(button) == false and button == lastButton then
+        lastButton = 0
+        anyButtonDown = false
+        return true
+    end
+
+    if anyButtonDown == false then
+        lastButton = 0
+    end
+    return false
 end
 
 local function Draw()
+    if ButtonReleased(options.MenuKey) then
+        menuVisible = not menuVisible
+    end
+
+    if menuVisible == false then return end
+
     draw.SetFont(options.Font)
     local sWidth, sHeight = draw.GetScreenSize()
     local xPos = math.floor(sWidth * options.X)
@@ -125,10 +137,6 @@ local function Draw()
                 end
             elseif vOption.Type == optType.INT then
                 valueText = guiValue
-            elseif vOption.Type == optType.SWITCH then
-                valueText = GetSwitchText(guiValue, vOption.Values)
-            elseif vOption.Type == optType.KEY then
-                valueText = guiValue -- TODO: Get Key name
             end
 
             local vWidth, vHeight = draw.GetTextSize(valueText)
@@ -136,27 +144,17 @@ local function Draw()
 
             -- Interaction
             if currentOption == selectedOption then
-                if input.IsButtonDown(KEY_LEFT) then
+                if ButtonReleased(KEY_LEFT) then
                     if vOption.Type == optType.BOOL then
-                        gui.SetValue(vOption.Option, 1 - guiValue)
-                    elseif vOption.Type == optType.INT then
-                        local newValue = guiValue + 1
-                        if newValue > vOption.Max then
-                            newValue = vOption.Min
-                        end
-                        gui.SetValue(vOption.Option, newValue)
-                    elseif vOption.Type == optType.SWITCH then
-                        local newValue = guiValue + 1
-                        if newValue > vOption.Max then
-                            newValue = vOption.Min
-                        end
-                        gui.SetValue(vOption.Option, newValue)
-                    elseif vOption.Type == optType.KEY then
-                        local newValue = guiValue + 1
-                        if newValue > vOption.Max then
-                            newValue = vOption.Min
-                        end
-                        gui.SetValue(vOption.Option, newValue)
+                        gui.SetValue(vOption.Option, 0)
+                    elseif (vOption.Type == optType.INT) and (guiValue > vOption.Min) then
+                        gui.SetValue(vOption.Option, guiValue - 1)
+                    end
+                elseif ButtonReleased(KEY_RIGHT) then
+                    if vOption.Type == optType.BOOL then
+                        gui.SetValue(vOption.Option, 1)
+                    elseif (vOption.Type == optType.INT) and (guiValue < vOption.Max) then
+                        gui.SetValue(vOption.Option, guiValue + 1)
                     end
                 end
             end
@@ -166,13 +164,13 @@ local function Draw()
         end
     end
 
-    -- Increase of decreate the selected option by the arrow keys
-    if input.IsButtonDown(KEY_UP) then
+    -- Increase of decrease the selected option by the arrow keys
+    if ButtonReleased(KEY_UP) then
         selectedOption = selectedOption - 1
         if selectedOption < 1 then
             selectedOption = currentOption
         end
-    elseif input.IsButtonDown(KEY_DOWN) then
+    elseif ButtonReleased(KEY_DOWN) then
         selectedOption = selectedOption + 1
         if selectedOption > currentOption then
             selectedOption = 1
