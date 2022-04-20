@@ -6,7 +6,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.3,
+    Version = 1.35,
     DebugInfo = false
 }
 
@@ -226,6 +226,7 @@ Slider.__index = Slider
 setmetatable(Slider, Component)
 
 function Slider.New(label, min, max, value, flags)
+    assert(max > min, "Slider max must be greater than min")
     flags = flags or ItemFlags.None
 
     local self = setmetatable({}, Slider)
@@ -248,13 +249,13 @@ function Slider:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label .. ": " .. self.Value)
     local sliderWidth = menu.Width - (menu.Space * 2)
     local sliderHeight = lblHeight + (menu.Space * 2)
-    local dragX = math.floor((self.Value / math.abs(self.Max - self.Min)) * sliderWidth)
+    local dragX = math.floor(((self.Value - self.Min) / math.abs(self.Max - self.Min)) * sliderWidth)
 
     -- Interaction
     if dragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
             dragX = Clamp(input.GetMousePos()[1] - (menu.X + menu.Cursor.X), 0, sliderWidth)
-            self.Value = math.floor((dragX / sliderWidth) * math.abs(self.Max - self.Min))
+            self.Value = (math.floor((dragX / sliderWidth) * math.abs(self.Max - self.Min))) + self.Min
         end
     end
 
