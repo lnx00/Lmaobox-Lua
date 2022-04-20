@@ -578,6 +578,10 @@ function Menu:SetVisible(visible)
     self.Visible = visible
 end
 
+function Menu:Toggle()
+    self.Visible = not self.Visible
+end
+
 function Menu:SetTitle(title)
     self.Title = title
 end
