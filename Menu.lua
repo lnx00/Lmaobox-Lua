@@ -2,11 +2,12 @@
     Menu Library for Lmaobox
     Author: LNX (github.com/lnx00)
 ]]
+
 local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.35,
+    Version = 1.36,
     DebugInfo = false
 }
 
@@ -159,7 +160,7 @@ function Checkbox:Render(menu)
 
     if self.Value == true then
         draw.Color(255, 255, 255, 120)
-        draw.FilledRect(math.floor(menu.X + menu.Cursor.X + menu.Space), math.floor(menu.Y + menu.Cursor.Y + menu.Space), math.ceil(menu.X + menu.Cursor.X + chkSize - menu.Space), math.ceil(menu.Y + menu.Cursor.Y + chkSize - menu.Space))
+        draw.FilledRect(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space,menu.X + menu.Cursor.X + chkSize - menu.Space, menu.Y + menu.Cursor.Y + chkSize - menu.Space)
     end
 
     menu.Cursor.Y = menu.Cursor.Y + chkSize + menu.Space

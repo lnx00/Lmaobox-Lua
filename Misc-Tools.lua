@@ -25,8 +25,9 @@ end, ItemFlags.FullWidth))
 local mFLMelee = menu:AddComponent(MenuLib.Checkbox("Latency on Melee", false))
 local mAutoMelee = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch", false))
 local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Distance", 100, 400, 200))
+local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
 
-local function CreateMove(pCmd)
+local function OnCreateMove(pCmd)
     local pLocal = entities.GetLocalPlayer()
     if not pLocal then return end
 
@@ -97,16 +98,37 @@ local function CreateMove(pCmd)
     end
 end
 
-local function Unload()
+local function OnStringCmd(stringCmd)
+    local cmd = stringCmd:Get()
+    local blockCmd = false
+
+    -- Allow \n in chat (This method is scuffed, but it works)
+    if mChatNL:GetValue() == true then
+        cmd = cmd:gsub("\\n", "\n")
+        if cmd:find("say_team", 1, true) == 1 then
+            cmd = cmd:sub(11, -2)
+            client.ChatTeamSay(cmd)
+            blockCmd = true
+        elseif cmd:find("say", 1, true) == 1 then
+            cmd = cmd:sub(6, -2)
+            client.ChatSay(cmd)
+            blockCmd = true
+        end
+    end
+
+    if blockCmd then
+        stringCmd:Set("")
+    end
+end
+
+local function OnUnload()
     MenuLib.RemoveMenu(menu)
 
     client.Command('play "ui/buttonclickrelease"', true)
 end
 
-callbacks.Unregister("CreateMove", "MT_CreateMove") 
-callbacks.Register("CreateMove", "MT_CreateMove", CreateMove)
-
-callbacks.Unregister("Unload", "MT_Unload") 
-callbacks.Register("Unload", "MT_Unload", Unload)
+callbacks.Register("CreateMove", OnCreateMove)
+callbacks.Register("SendStringCmd", OnStringCmd)
+callbacks.Register("Unload", OnUnload)
 
 client.Command('play "ui/buttonclick"', true)
