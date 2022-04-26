@@ -7,9 +7,19 @@ local menuLoaded, MenuLib = pcall(require, "Menu")
 assert(menuLoaded, "MenuLib not found, please install it!")
 assert(MenuLib.Version >= 1.35, "MenuLib version is too old, please update it!")
 
-local ltExtendFreeze = 0
+local LastExtenFreeze = 0
+local ObserverMode = {
+    None = 0,
+    Deathcam = 1,
+    FreezeCam = 2,
+    Fixed = 3,
+    FirstPerson = 4,
+    ThirdPerson = 5,
+    PointOfInterest = 6,
+    FreeRoaming = 7
+}
 
--- Menu
+--[[ Menu ]]
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
 local mLegJitter = menu:AddComponent(MenuLib.Checkbox("Leg Jitter", false))
 local mRageRetry = menu:AddComponent(MenuLib.Checkbox("Rage Retry", false))
@@ -25,9 +35,41 @@ end, ItemFlags.FullWidth))
 local mFLMelee = menu:AddComponent(MenuLib.Checkbox("Latency on Melee", false))
 local mAutoMelee = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch", false))
 local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Distance", 100, 400, 200))
+local mSpecSmooth = menu:AddComponent(MenuLib.Checkbox("Smooth on spectate", false))
 local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
 
+--[[ Options management ]]
+local TempOptions = {}
+
+local function ResetTempOptions()
+    for k, v in pairs(TempOptions) do
+        TempOptions[k].WasUsed = false
+    end
+end
+
+local function SetOptionTemp(option, value)
+    local guiValue = gui.GetValue(option)
+    if guiValue ~= value then
+        gui.SetValue(option, value)
+        TempOptions[option] = { Value = guiValue, WasUsed = true }
+    end
+
+    if TempOptions[option] ~= nil then
+        TempOptions[option].WasUsed = true
+    end
+end
+
+local function CheckTempOptions()
+    for k, v in pairs(TempOptions) do
+        if not v.WasUsed then
+            gui.SetValue(k, v.Value)
+            TempOptions[k] = nil
+        end
+    end
+end
+
 local function OnCreateMove(pCmd)
+    ResetTempOptions()
     local pLocal = entities.GetLocalPlayer()
     if not pLocal then return end
 
@@ -55,9 +97,9 @@ local function OnCreateMove(pCmd)
 
     -- Infinite Respawn
     if mExtendFreeze:GetValue() == true then
-        if (pLocal:IsAlive() == false) and (globals.RealTime() > (ltExtendFreeze + 2)) then
+        if (pLocal:IsAlive() == false) and (globals.RealTime() > (LastExtenFreeze + 2)) then
             client.Command("extendfreeze", true)
-            ltExtendFreeze = globals.RealTime()
+            LastExtenFreeze = globals.RealTime()
         end
     end
 
@@ -79,6 +121,18 @@ local function OnCreateMove(pCmd)
     local players = entities.FindByClass("CTFPlayer")
     for k, vPlayer in pairs(players) do
         if vPlayer:IsValid() == false then goto continue end
+
+        -- Smooth on spectate
+        if mSpecSmooth:GetValue() == true then
+            local obsMode = pLocal:GetPropInt("m_iObserverMode")
+            local obsTarget = pLocal:GetPropEntity("m_hObserverTarget")
+            if obsMode and obsTarget then
+                if (obsTarget:GetIndex() == pLocal:GetIndex()) and (obsMode == ObserverMode.FirstPerson) then
+                    SetOptionTemp("aim method", "smooth")
+                end
+            end
+        end
+
         if vPlayer:IsAlive() == false then goto continue end
         if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end
 
@@ -96,6 +150,7 @@ local function OnCreateMove(pCmd)
 
         ::continue::
     end
+    CheckTempOptions()
 end
 
 local function OnStringCmd(stringCmd)
