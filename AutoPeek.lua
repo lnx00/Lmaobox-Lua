@@ -4,21 +4,22 @@
 ]]
 
 local options = {
-    Key = KEY_LSHIFT,
-    FreeMove = false,
-    Distance = 200,
+    Key = KEY_LSHIFT, -- Hold this key to start peeking
+    FreeMove = false, -- Allows you to move freely
+    Distance = 200, -- Max peek distance
+    Segments = 5, -- Higher values = more precise but worse performance
     Font = draw.CreateFont("Roboto", 20, 400)
 }
 
-local posPlaced = false
-local isReturning = false
-local hasDirection = false
-local peekStart = Vector3(0, 0, 0)
-local peekVector = Vector3(0, 0, 0)
-local peekReturnPos = Vector3(0, 0, 0)
+local PosPlaced = false -- Did we start peeking?
+local IsReturning = false -- Are we returning?
+local HasDirection = false -- Do we have a peek direction?
+local PeekStartVec = Vector3(0, 0, 0)
+local PeekDirectionVec = Vector3(0, 0, 0)
+local PeekReturnVec = Vector3(0, 0, 0)
 
--- Drawing
-local lineList = {}
+local SegmentSize = math.floor(100 / options.Segments)
+local LineDrawList = {}
 
 local function OnGround(player)
     local pFlags = player:GetPropInt("m_fFlags")
@@ -30,9 +31,20 @@ local function VisPos(target, vFrom, vTo)
     return ((trace.entity and trace.entity == target) or (trace.fraction > 0.99))
 end
 
-local function CanAttack(pLocal, pPos)
+local function CanShoot(pLocal)
     local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
-    if not pWeapon then return end
+    if not pWeapon then return false end
+
+    local nextPrimaryAttack = pWeapon:GetPropFloat("LocalActiveWeaponData", "m_flNextPrimaryAttack")
+    local nextAttack = pLocal:GetPropFloat("bcc_localdata", "m_flNextAttack")
+
+    if (not nextPrimaryAttack) or (not nextAttack) then return false end
+
+    return (nextPrimaryAttack <= globals.CurTime()) and (nextAttack <= globals.CurTime())
+end
+
+local function CanAttackFromPos(pLocal, pPos)
+    if CanShoot(pLocal) == false then return false end
 
     local players = entities.FindByClass("CTFPlayer")
     for k, vPlayer in pairs(players) do
@@ -66,21 +78,24 @@ local function ComputeMove(pCmd, pLocal, a, b)
     local pitch = math.rad(ang.x - cPitch)
     local move = Vector3(math.cos(yaw) * 450, -math.sin(yaw) * 450, -math.cos(pitch) * 450)
 
-    -- TODO: Apply upmove in water
     return move
 end
 
-local function WalkTo(pCmd, pLocal, a, b, scale)
-    local result = ComputeMove(pCmd, pLocal, a, b)
+-- Walks to a given destination vector
+local function WalkTo(pCmd, pLocal, pDestination)
+    local localPos = pLocal:GetAbsOrigin()
+    local result = ComputeMove(pCmd, pLocal, localPos, pDestination)
 
-    pCmd:SetForwardMove(result.x * scale)
-    pCmd:SetSideMove(result.y * scale)
-    pCmd:SetUpMove(result.z * scale)
+    pCmd:SetForwardMove(result.x)
+    pCmd:SetSideMove(result.y)
+    pCmd:SetUpMove(result.z)
 end
 
-local function WalkToVec(pCmd, pLocal, pDestination)
-    local localPos = pLocal:GetAbsOrigin()
-    WalkTo(pCmd, pLocal, localPos, pDestination, 1)
+local function DrawLine(startPos, endPos)
+    table.insert(LineDrawList, {
+        start = startPos,
+        endPos = endPos
+    })
 end
 
 local function OnCreateMove(pCmd)
@@ -91,110 +106,99 @@ local function OnCreateMove(pCmd)
         local localPos = pLocal:GetAbsOrigin()
 
         -- We just started peeking. Save the return position!
-        if posPlaced == false then
+        if PosPlaced == false then
             if OnGround(pLocal) then
-                peekReturnPos = localPos
-                posPlaced = true
+                PeekReturnVec = localPos
+                PosPlaced = true
             end
         else
             -- TODO: Particle effect
         end
 
         -- We need a peek direction (A / D)
-        if options.FreeMove == false and hasDirection == false and OnGround(pLocal) then
+        if options.FreeMove == false and HasDirection == false and OnGround(pLocal) then
             local viewAngles = engine.GetViewAngles()
-            local vForward = viewAngles:Forward()
-            local vRight = viewAngles:Right()
-            local vUp = viewAngles:Up()
             local vDirection = Vector3(0, 0, 0)
 
             if input.IsButtonDown(KEY_A) or input.IsButtonDown(KEY_W) or input.IsButtonDown(KEY_D) or input.IsButtonDown(KEY_S) then
-                local viewOffset = pLocal:GetPropVector("localdata", "m_vecViewOffset[0]")
-                local eyePos = viewOffset + localPos
-                
+                local eyePos = localPos + pLocal:GetPropVector("localdata", "m_vecViewOffset[0]")
+
                 if input.IsButtonDown(KEY_A) or input.IsButtonDown(KEY_W) then
-                    vDirection = eyePos - (vRight * options.Distance) -- Left
+                    vDirection = vDirection - (viewAngles:Right() * options.Distance) -- Left
                 elseif input.IsButtonDown(KEY_D) or input.IsButtonDown(KEY_S) then
-                    vDirection = eyePos + (vRight * options.Distance) -- Right
+                    vDirection = vDirection + (viewAngles:Right() * options.Distance) -- Right
                 end
 
-                print("Data:")
-                print(eyePos)
-                print(vDirection)
+                local traceDest = eyePos + vDirection
+                local trace = engine.TraceLine(eyePos, traceDest, MASK_SOLID)
 
-                local trace = engine.TraceLine(eyePos, vDirection, MASK_SOLID)
                 if trace then
-                    peekStart = eyePos
-                    peekVector = vDirection
-                    hasDirection = true
+                    PeekStartVec = eyePos
+                    PeekDirectionVec = vDirection * trace.fraction
+                    HasDirection = true
                 end
             end
         end
 
         -- Should we peek?
-        if options.FreeMove == false and hasDirection == true then
+        if options.FreeMove == false and HasDirection == true then
             local targetFound = false
-            lineList = {}
-            for i = 1, 10 do
-                local step = (i * 10) / 100
-                local currentPos = peekStart + (peekVector * step)
-                if CanAttack(pLocal, currentPos) then
-                    WalkToVec(pCmd, pLocal, currentPos)
+            LineDrawList = {}
+            for i = 1, options.Segments do
+                local step = (i * SegmentSize) / 100
+                local currentPos = PeekStartVec + (PeekDirectionVec * step)
+                if CanAttackFromPos(pLocal, currentPos) then
+                    WalkTo(pCmd, pLocal, currentPos)
                     targetFound = true
                 end
 
+                DrawLine(PeekReturnVec, currentPos)
                 if targetFound then
-                    -- TODO: Draw a line to the target
-                    
+                    break
                 end
-
-                -- TODO: Draw visualization
-                table.insert(lineList, {
-                    start = peekReturnPos,
-                    endPos = currentPos
-                })
             end
 
-            if targetFound == false then isReturning = true end
-        end
-    
-        -- We've just attacked. Let's return!
-        if pCmd:GetButtons() & IN_ATTACK == 1 then
-            isReturning = true
+            if targetFound == false then IsReturning = true end
         end
 
-        if isReturning == true then
-            local distVector = peekReturnPos - localPos
+        -- We've just attacked. Let's return!
+        if pCmd:GetButtons() & IN_ATTACK == 1 then
+            IsReturning = true
+        end
+
+        if IsReturning == true then
+            local distVector = PeekReturnVec - localPos
             local dist = distVector:Length()
             if dist < 7 then
-                isReturning = false
+                IsReturning = false
                 return
             end
 
-            WalkToVec(pCmd, pLocal, peekReturnPos)
+            WalkTo(pCmd, pLocal, PeekReturnVec)
         end
     else
-        posPlaced = false
-        isReturning = false
-        hasDirection = false
-        peekReturnPos = Vector3(0, 0, 0)
+        PosPlaced = false
+        IsReturning = false
+        HasDirection = false
+        PeekReturnVec = Vector3(0, 0, 0)
     end
 end
 
 local function OnDraw()
-    if posPlaced == false then return end
+    if PosPlaced == false or HasDirection == false then return end
 
     draw.SetFont(options.Font)
     draw.Color(255, 255, 255, 255)
 
     -- Draw the peek return position
-    local screenPos = client.WorldToScreen(peekReturnPos)
+    local screenPos = client.WorldToScreen(PeekReturnVec)
     if screenPos ~= nil then
         draw.Text(screenPos[1], screenPos[2], "Peek Return")
     end
 
     -- Draw the lines
-    for k, v in pairs(lineList) do
+    draw.Color(200, 200, 200, 230)
+    for k, v in pairs(LineDrawList) do
         local start = client.WorldToScreen(v.start)
         local endPos = client.WorldToScreen(v.endPos)
         if start ~= nil and endPos ~= nil then
