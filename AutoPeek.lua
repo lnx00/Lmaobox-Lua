@@ -195,7 +195,7 @@ local function OnDraw()
     -- Draw the peek return position
     local screenPos = client.WorldToScreen(PeekReturnVec)
     if screenPos ~= nil then
-        draw.Text(screenPos[1], screenPos[2], "Peek Return")
+        draw.Text(screenPos[1], screenPos[2], "Start Pos")
     end
 
     -- Draw the lines
