@@ -33,11 +33,10 @@ end
 
 local function CanShoot(pLocal)
     local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
-    if not pWeapon then return false end
+    if (not pWeapon) or (pWeapon:IsMeleeWeapon()) then return false end
 
     local nextPrimaryAttack = pWeapon:GetPropFloat("LocalActiveWeaponData", "m_flNextPrimaryAttack")
     local nextAttack = pLocal:GetPropFloat("bcc_localdata", "m_flNextAttack")
-
     if (not nextPrimaryAttack) or (not nextAttack) then return false end
 
     return (nextPrimaryAttack <= globals.CurTime()) and (nextAttack <= globals.CurTime())
@@ -45,13 +44,16 @@ end
 
 local function CanAttackFromPos(pLocal, pPos)
     if CanShoot(pLocal) == false then return false end
+    local ignoreFriends = gui.GetValue("ignore steam friends")
 
     local players = entities.FindByClass("CTFPlayer")
     for k, vPlayer in pairs(players) do
         if vPlayer:IsValid() == false then goto continue end
         if vPlayer:IsAlive() == false then goto continue end
         if vPlayer:GetTeamNumber() == pLocal:GetTeamNumber() then goto continue end
-        -- TODO: Check friends etc.
+
+        local playerInfo = client.GetPlayerInfo(vPlayer:GetIndex())
+        if steam.IsFriend(playerInfo.SteamID) and ignoreFriends == 1 then goto continue end
 
         -- TODO: Check for hitbox and not abs
         if VisPos(vPlayer, pPos, vPlayer:GetAbsOrigin()) then
@@ -64,7 +66,7 @@ local function CanAttackFromPos(pLocal, pPos)
     return false
 end
 
-local function ComputeMove(pCmd, pLocal, a, b)
+local function ComputeMove(pCmd, a, b)
     local diff = (b - a)
     if diff:Length() == 0 then return Vector3(0, 0, 0) end
 
@@ -84,7 +86,7 @@ end
 -- Walks to a given destination vector
 local function WalkTo(pCmd, pLocal, pDestination)
     local localPos = pLocal:GetAbsOrigin()
-    local result = ComputeMove(pCmd, pLocal, localPos, pDestination)
+    local result = ComputeMove(pCmd, localPos, pDestination)
 
     pCmd:SetForwardMove(result.x)
     pCmd:SetSideMove(result.y)
