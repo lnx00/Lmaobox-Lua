@@ -182,8 +182,12 @@ local function OnUnload()
     client.Command('play "ui/buttonclickrelease"', true)
 end
 
-callbacks.Register("CreateMove", OnCreateMove)
-callbacks.Register("SendStringCmd", OnStringCmd)
-callbacks.Register("Unload", OnUnload)
+callbacks.Unregister("CreateMove", "MCT_CreateMove")
+callbacks.Unregister("SendStringCmd", "MCT_StringCmd")
+callbacks.Unregister("Unload", "MCT_Unload")
+
+callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)
+callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)
+callbacks.Register("Unload", "MCT_Unload", OnUnload)
 
 client.Command('play "ui/buttonclick"', true)

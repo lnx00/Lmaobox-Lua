@@ -6,10 +6,12 @@
 local options = {
     Key = KEY_LSHIFT, -- Hold this key to start peeking
     FreeMove = false, -- Allows you to move freely
-    Distance = 200, -- Max peek distance
+    Distance = 100, -- Max peek distance
     Segments = 5, -- Higher values = more precise but worse performance
     Font = draw.CreateFont("Roboto", 20, 400)
 }
+assert(options.Distance > 0, "Distance must be greater than 0")
+assert(options.Segments > 0 and options.Segments < 25, "Segments must be between 1 and 25")
 
 local PosPlaced = false -- Did we start peeking?
 local IsReturning = false -- Are we returning?
@@ -18,10 +20,16 @@ local PeekStartVec = Vector3(0, 0, 0)
 local PeekDirectionVec = Vector3(0, 0, 0)
 local PeekReturnVec = Vector3(0, 0, 0)
 
-assert(options.Distance > 0, "Distance must be greater than 0")
-assert(options.Segments > 0 and options.Segments < 25, "Segments must be between 1 and 25")
 local SegmentSize = math.floor(100 / options.Segments)
 local LineDrawList = {}
+
+local Hitboxes = {
+    HEAD = 1,
+    NECK = 2,
+    PELVIS = 4,
+    BODY = 5,
+    CHEST = 7
+}
 
 local function OnGround(player)
     local pFlags = player:GetPropInt("m_fFlags")
@@ -44,6 +52,13 @@ local function CanShoot(pLocal)
     return (nextPrimaryAttack <= globals.CurTime()) and (nextAttack <= globals.CurTime())
 end
 
+local function GetHitboxPos(entity, hitbox)
+    local hitbox = entity:GetHitboxes()[hitbox]
+    if not hitbox then return end
+
+    return (hitbox[1] + hitbox[2]) * 0.5
+end
+
 local function CanAttackFromPos(pLocal, pPos)
     if CanShoot(pLocal) == false then return false end
     local ignoreFriends = gui.GetValue("ignore steam friends")
@@ -58,7 +73,7 @@ local function CanAttackFromPos(pLocal, pPos)
         if steam.IsFriend(playerInfo.SteamID) and ignoreFriends == 1 then goto continue end
 
         -- TODO: Check for hitbox and not abs
-        if VisPos(vPlayer, pPos, vPlayer:GetAbsOrigin()) then
+        if VisPos(vPlayer, pPos, GetHitboxPos(vPlayer, Hitboxes.HEAD)) then
             return true
         end
 
@@ -137,8 +152,8 @@ local function OnCreateMove(pCmd)
                 local trace = engine.TraceLine(eyePos, traceDest, MASK_SOLID)
 
                 if trace then
-                    PeekStartVec = eyePos
-                    PeekDirectionVec = vDirection * trace.fraction
+                    PeekStartVec = trace.startpos
+                    PeekDirectionVec = trace.endpos - trace.startpos
                     HasDirection = true
                 end
             end
@@ -193,12 +208,6 @@ local function OnDraw()
 
     draw.SetFont(options.Font)
     draw.Color(255, 255, 255, 255)
-
-    -- Draw the peek return position
-    local screenPos = client.WorldToScreen(PeekReturnVec)
-    if screenPos ~= nil then
-        draw.Text(screenPos[1], screenPos[2], "Start Pos")
-    end
 
     -- Draw the lines
     draw.Color(200, 200, 200, 230)

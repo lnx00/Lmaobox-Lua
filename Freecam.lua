@@ -62,9 +62,10 @@ local function PostPropUpdate()
     end
 end
 
-callbacks.Unregister("CreateMove", "CreateMove_Freecam") 
-callbacks.Unregister("PostPropUpdate", "FSN_Freecam") 
-callbacks.Register("CreateMove", "CreateMove_Freecam", CreateMove) 
-callbacks.Register("PostPropUpdate", "FSN_Freecam", PostPropUpdate) 
+callbacks.Unregister("CreateMove", "CreateMove_Freecam")
+callbacks.Unregister("PostPropUpdate", "FSN_Freecam")
+
+callbacks.Register("CreateMove", "CreateMove_Freecam", CreateMove)
+callbacks.Register("PostPropUpdate", "FSN_Freecam", PostPropUpdate)
 
 client.Command('play "ui/buttonclick"', true)
