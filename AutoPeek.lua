@@ -18,6 +18,8 @@ local PeekStartVec = Vector3(0, 0, 0)
 local PeekDirectionVec = Vector3(0, 0, 0)
 local PeekReturnVec = Vector3(0, 0, 0)
 
+assert(options.Distance > 0, "Distance must be greater than 0")
+assert(options.Segments > 0 and options.Segments < 25, "Segments must be between 1 and 25")
 local SegmentSize = math.floor(100 / options.Segments)
 local LineDrawList = {}
 
