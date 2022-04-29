@@ -84,8 +84,9 @@ MenuLib.Combo("Label", combo)
 Allows you to select multiple options in a dropdown.
 ```
 local multiCombo = {
-  { "Option 1", true },
-  { "Option 2", false },
+  ["Option 1"] = true,
+  ["Options 2"] = false,
+  ["Options 3"] = true
   [...]
 }
 MenuLib.MultiCombo("Label", multiCombo)
@@ -105,8 +106,22 @@ A window that contains components
 Properties for all components and menus:
 ```
 [Element].Visible
-[Element]:SetVisible(state)
 [Element].ID
+[Element]:SetVisible(state)
+[Element]:GetValue()
+```
+
+You can access and change the menu style using [Menu].Style
+```
+Style.Space = 4,
+Style.Font = MenuManager.Font,
+Style.WindowBg = { 30, 30, 30, 255 },
+Style.TitleBg = { 55, 100, 215, 255 },
+Style.Text = { 255, 255, 255, 255 },
+Style.Item = { 50, 50, 50, 255 },
+Style.ItemHover = { 65, 65, 65, 255 },
+Style.ItemActive = { 80, 80, 80, 255 },
+Style.Highlight = { 180, 180, 180, 100 }
 ```
 
 ## Flags
@@ -116,12 +131,19 @@ Menus.Create("Flag Menu", MenuFlags.NoTitle | MenuFlags.NoDrag)
 ```
 
 **Available flags:**
+Menu Flags:
 ```
-MenuFlags.NoTitle - No title bar
-MenuFlags.NoBackground - No window background
-MenuFlags.NoDrag - Disable dragging
-MenuFlags.AutoSize - Auto size height to contents
-MenuFlags.ShowAlways - Show menu when ingame
+MenuFlags.NoTitle -- No title bar
+MenuFlags.NoBackground -- No window background
+MenuFlags.NoDrag -- Disable dragging
+MenuFlags.AutoSize -- Auto size height to contents
+MenuFlags.ShowAlways -- Show menu when ingame
+```
+
+Component Flags:
+```
+ItemFlags.FullWidth -- Fill width of menu
+ItemFlags.Active -- Item is always active
 ```
 
 Have fun creating menus!
