@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.36,
+    Version = 1.40,
     DebugInfo = false
 }
 
@@ -26,9 +26,9 @@ ItemFlags = {
 }
 
 local lastMouseState = false
-local mouseUp = false
+local MouseReleased = false
 local dragID = 0
-local dragOffset = {0, 0}
+local dragOffset = { 0, 0 }
 
 local inputMap = {}
 for i = 0, 9 do inputMap[i + 1] = tostring(i) end
@@ -57,11 +57,16 @@ end
 
 local function UpdateMouseState()
     local mouseState = input.IsButtonDown(MOUSE_LEFT)
-    mouseUp = (mouseState == false and lastMouseState == true)
+    MouseReleased = (mouseState == false and lastMouseState == true)
     lastMouseState = mouseState
 end
 
 local function Clamp(n, low, high) return math.min(math.max(n, low), high) end
+
+local function SetColorStyle(color)
+    local alpha = color[4] or 255
+    draw.Color(color[1], color[2], color[3], alpha)
+end
 
 --[[ Component Class ]]
 local Component = {
@@ -103,12 +108,12 @@ function Label.New(label, flags)
 end
 
 function Label:Render(menu)
-    draw.Color(255, 255, 255, 255)
+    SetColorStyle(menu.Style.Text)
     draw.SetFont(MenuManager.Font)
     draw.Text(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, self.Text)
     local textWidth, textHeight = draw.GetTextSize(self.Text)
 
-    menu.Cursor.Y = menu.Cursor.Y + textHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + textHeight + menu.Style.Space
 end
 
 --[[ Checkbox Component ]]
@@ -142,28 +147,28 @@ function Checkbox:Render(menu)
     local chkSize = math.floor(lblHeight * 1.4)
 
     -- Interaction
-    if mouseUp and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize + menu.Space + lblWidth, menu.Y + menu.Cursor.Y + chkSize) then
+    if MouseReleased and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize + menu.Style.Space + lblWidth, menu.Y + menu.Cursor.Y + chkSize) then
         self.Value = not self.Value
     end
 
     if self.Value == true then
         draw.Color(68, 189, 50, 255) -- Checked
     else
-        draw.Color(179, 57, 57, 255) -- Unchecked
+        draw.Color(120, 50, 35, 255) -- Unchecked
     end
 
     -- Drawing
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize, menu.Y + menu.Cursor.Y + chkSize)
     draw.SetFont(MenuManager.Font)
-    draw.Color(255, 255, 255, 255)
-    draw.Text(menu.X + menu.Cursor.X + chkSize + menu.Space, math.floor(menu.Y + menu.Cursor.Y + (chkSize / 2) - (lblHeight / 2)), self.Label)
+    SetColorStyle(menu.Style.Text)
+    draw.Text(menu.X + menu.Cursor.X + chkSize + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (chkSize / 2) - (lblHeight / 2)), self.Label)
 
     if self.Value == true then
         draw.Color(255, 255, 255, 120)
-        draw.FilledRect(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space,menu.X + menu.Cursor.X + chkSize - menu.Space, menu.Y + menu.Cursor.Y + chkSize - menu.Space)
+        draw.FilledRect(menu.X + menu.Cursor.X + menu.Style.Space, menu.Y + menu.Cursor.Y + menu.Style.Space, menu.X + menu.Cursor.X + chkSize - menu.Style.Space, menu.Y + menu.Cursor.Y + chkSize - menu.Style.Space)
     end
 
-    menu.Cursor.Y = menu.Cursor.Y + chkSize + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + chkSize + menu.Style.Space
 end
 
 --[[ Button Component ]]
@@ -190,30 +195,32 @@ end
 
 function Button:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
-    local btnWidth = lblWidth + (menu.Space * 4)
+    local btnWidth = lblWidth + (menu.Style.Space * 4)
     if self.Flags & ItemFlags.FullWidth ~= 0 then
-        btnWidth = menu.Width - (menu.Space * 2)
+        btnWidth = menu.Width - (menu.Style.Space * 2)
     end
 
-    local btnHeight = lblHeight + (menu.Space * 2)
-    
+    local btnHeight = lblHeight + (menu.Style.Space * 2)
+
     -- Interaction
-    draw.Color(55, 55, 55, 255)
+    SetColorStyle(menu.Style.Item)
     if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
-            draw.Color(70, 70, 70, 255)
+            SetColorStyle(menu.Style.ItemActive)
+        else
+            SetColorStyle(menu.Style.ItemHover)
         end
-        if mouseUp then
+        if MouseReleased then
             self:Callback()
         end
     end
 
     -- Drawing
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight)
-    draw.Color(255, 255, 255, 255)
+    SetColorStyle(menu.Style.Text)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (btnWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (btnHeight / 2) - (lblHeight / 2)), self.Label)
 
-    menu.Cursor.Y = menu.Cursor.Y + btnHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + btnHeight + menu.Style.Space
 end
 
 --[[ Slider Component ]]
@@ -248,8 +255,8 @@ end
 
 function Slider:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label .. ": " .. self.Value)
-    local sliderWidth = menu.Width - (menu.Space * 2)
-    local sliderHeight = lblHeight + (menu.Space * 2)
+    local sliderWidth = menu.Width - (menu.Style.Space * 2)
+    local sliderHeight = lblHeight + (menu.Style.Space * 2)
     local dragX = math.floor(((self.Value - self.Min) / math.abs(self.Max - self.Min)) * sliderWidth)
 
     -- Interaction
@@ -267,10 +274,10 @@ function Slider:Render(menu)
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + dragX, menu.Y + menu.Cursor.Y + sliderHeight)
 
     draw.SetFont(MenuManager.Font)
-    draw.Color(255, 255, 255, 255)
+    SetColorStyle(menu.Style.Text)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (sliderWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (sliderHeight / 2) - (lblHeight / 2)), self.Label .. ": " .. self.Value)
 
-    menu.Cursor.Y = menu.Cursor.Y + sliderHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + sliderHeight + menu.Style.Space
 end
 
 --[[ Textbox Component ]]
@@ -284,7 +291,7 @@ setmetatable(Textbox, Component)
 
 function Textbox.New(label, value, flags)
     flags = flags or ItemFlags.None
-    
+
     local self = setmetatable({}, Textbox)
     self.ID = MenuManager.CurrentID
     self.Label = label
@@ -301,11 +308,14 @@ end
 
 function Textbox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Value)
-    local boxWidth = menu.Width - (menu.Space * 2)
+    local boxWidth = menu.Width - (menu.Style.Space * 2)
     local boxHeight = 20
 
     -- Interaction
+    SetColorStyle(menu.Style.Item)
     if dragID == 0 and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
+        SetColorStyle(menu.Style.ItemHover)
+
         local key = GetCurrentKey()
         if not key and self._LastKey then
             if self._LastKey == "SPACE" then
@@ -325,19 +335,18 @@ function Textbox:Render(menu)
     end
 
     -- Drawing
-    draw.Color(60, 60, 60, 255)
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight)
 
     draw.SetFont(MenuManager.Font)
     if self.Value == "" then
         draw.Color(180, 180, 180, 255)
-        draw.Text(menu.X + menu.Cursor.X + menu.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Label)
+        draw.Text(menu.X + menu.Cursor.X + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Label)
     else
-        draw.Color(255, 255, 255, 255)
-        draw.Text(menu.X + menu.Cursor.X + menu.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Value)
+        SetColorStyle(menu.Style.Text)
+        draw.Text(menu.X + menu.Cursor.X + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (boxHeight / 2) - (lblHeight / 2)), self.Value)
     end
 
-    menu.Cursor.Y = menu.Cursor.Y + boxHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + boxHeight + menu.Style.Space
 end
 
 --[[ Combobox Compnent ]]
@@ -378,31 +387,33 @@ end
 
 function Combobox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
-    local cmbWidth = lblWidth + (menu.Space * 4)
+    local cmbWidth = lblWidth + (menu.Style.Space * 4)
     if self.Flags & ItemFlags.FullWidth ~= 0 then
-        cmbWidth = menu.Width - (menu.Space * 2)
+        cmbWidth = menu.Width - (menu.Style.Space * 2)
     end
 
-    local cmbHeight = lblHeight + (menu.Space * 2)
+    local cmbHeight = lblHeight + (menu.Style.Space * 2)
 
     -- Interaction
-    draw.Color(55, 55, 55, 255)
+    SetColorStyle(menu.Style.Item)
     if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
-            draw.Color(70, 70, 70, 255)
+            SetColorStyle(menu.Style.ItemActive)
+        else
+            SetColorStyle(menu.Style.ItemHover)
         end
-        if mouseUp then
+        if MouseReleased then
             self.Open = not self.Open
         end
     end
 
     if self.Open then
-        draw.Color(75, 75, 75, 255)
+        SetColorStyle(menu.Style.ItemActive)
     end
 
     -- Drawing
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight)
-    draw.Color(255, 255, 255, 255)
+    SetColorStyle(menu.Style.Text)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (cmbWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (cmbHeight / 2) - (lblHeight / 2)), self.Label)
 
     if self.Open then
@@ -420,11 +431,13 @@ function Combobox:Render(menu)
             else
                 draw.Color(65, 65, 65, 250)
             end
-            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2)) then
+            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Style.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Style.Space * 2)) then
                 if input.IsButtonDown(MOUSE_LEFT) then
-                    draw.Color(70, 70, 70, 255)
+                    SetColorStyle(menu.Style.ItemActive)
+                else
+                    SetColorStyle(menu.Style.ItemHover)
                 end
-                if mouseUp then
+                if MouseReleased then
                     self.Selected = vOption
                     self.SelectedIndex = i
                     self.Open = false
@@ -432,21 +445,21 @@ function Combobox:Render(menu)
             end
 
             -- Drawing
-            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2))
-            draw.Color(255, 255, 255, 255)
-            draw.Text(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space, vOption)
-            
+            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Style.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Style.Space * 2))
+            SetColorStyle(menu.Style.Text)
+            draw.Text(menu.X + menu.Cursor.X + menu.Style.Space, menu.Y + menu.Cursor.Y + menu.Style.Space, vOption)
+
             if olWidth > self._MaxSize then
                 self._MaxSize = olWidth
             elseif cmbWidth > self._MaxSize then
                 self._MaxSize = cmbWidth
             end
 
-            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Space * 2)
+            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Style.Space * 2)
         end
     end
 
-    menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Style.Space
 end
 
 --[[ Multi Combobox Component ]]
@@ -479,31 +492,33 @@ end
 
 function MultiCombobox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
-    local cmbWidth = lblWidth + (menu.Space * 4)
+    local cmbWidth = lblWidth + (menu.Style.Space * 4)
     if self.Flags & ItemFlags.FullWidth ~= 0 then
-        cmbWidth = menu.Width - (menu.Space * 2)
+        cmbWidth = menu.Width - (menu.Style.Space * 2)
     end
 
-    local cmbHeight = lblHeight + (menu.Space * 2)
+    local cmbHeight = lblHeight + (menu.Style.Space * 2)
 
     -- Interaction
-    draw.Color(55, 55, 55, 255)
+    SetColorStyle(menu.Style.Item)
     if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
-            draw.Color(70, 70, 70, 255)
+            SetColorStyle(menu.Style.ItemActive)
+        else
+            SetColorStyle(menu.Style.ItemHover)
         end
-        if mouseUp then
+        if MouseReleased then
             self.Open = not self.Open
         end
     end
 
     if self.Open then
-        draw.Color(75, 75, 75, 255)
+        SetColorStyle(menu.Style.ItemActive)
     end
 
     -- Drawing
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight)
-    draw.Color(255, 255, 255, 255)
+    SetColorStyle(menu.Style.Text)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (cmbWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (cmbHeight / 2) - (lblHeight / 2)), self.Label)
 
     if self.Open then
@@ -520,31 +535,31 @@ function MultiCombobox:Render(menu)
             else
                 draw.Color(65, 65, 65, 250)
             end
-            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2)) then
+            if MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Style.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Style.Space * 2)) then
                 if vOption[2] == true == false and input.IsButtonDown(MOUSE_LEFT) then
                     draw.Color(70, 70, 70, 255)
                 end
-                if mouseUp then
+                if MouseReleased then
                     self.Options[i][2] = not self.Options[i][2]
                 end
             end
 
             -- Drawing
-            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Space * 2))
-            draw.Color(255, 255, 255, 255)
-            draw.Text(menu.X + menu.Cursor.X + menu.Space, menu.Y + menu.Cursor.Y + menu.Space, vOption[1])
-            
+            draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + olWidth + (menu.Style.Space * 2), menu.Y + menu.Cursor.Y + olHeight + (menu.Style.Space * 2))
+            SetColorStyle(menu.Style.Text)
+            draw.Text(menu.X + menu.Cursor.X + menu.Style.Space, menu.Y + menu.Cursor.Y + menu.Style.Space, vOption[1])
+
             if olWidth > self._MaxSize then
                 self._MaxSize = olWidth
             elseif cmbWidth > self._MaxSize then
                 self._MaxSize = cmbWidth
             end
 
-            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Space * 2)
+            menu.Cursor.Y = menu.Cursor.Y + olHeight + (menu.Style.Space * 2)
         end
     end
 
-    menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Space
+    menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Style.Space
 end
 
 --[[ Menu Class ]]
@@ -556,7 +571,7 @@ local Menu = {
     X = 100, Y = 100,
     Width = 200, Height = 200,
     Cursor = { X = 0, Y = 0 },
-    Space = 4,
+    Style = {},
     Flags = 0,
     _AutoH = 0
 }
@@ -569,6 +584,16 @@ function Menu.New(title, flags)
     self.ID = MenuManager.CurrentID
     self.Title = title
     self.Components = {}
+    self.Style = {
+        Space = 4,
+        Font = MenuManager.Font,
+        WindowBg = { 30, 30, 30, 255 },
+        TitleBg = { 55, 100, 215, 255 },
+        Text = { 255, 255, 255, 255 },
+        Item = { 50, 50, 50, 255 },
+        ItemActive = { 60, 60, 60, 255 },
+        ItemHover = { 70, 70, 70, 255 }
+    }
     self.Flags = flags
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
@@ -617,7 +642,6 @@ end
 
 --[[ Menu Manager ]]
 function MenuManager.Create(title, flags)
-    assert(#MenuManager.Menus < 30, "Are you sure that you want to create more than 30 menus?")
     flags = flags or MenuFlags.None
 
     local menu = Menu.New(title, flags)
@@ -725,23 +749,23 @@ function MenuManager.Draw()
 
         -- Background
         if vMenu.Flags & MenuFlags.NoBackground == 0 then
-            draw.Color(30, 30, 30, 250)
+            SetColorStyle(vMenu.Style.WindowBg)
             draw.FilledRect(vMenu.X, vMenu.Y, vMenu.X + vMenu.Width, vMenu.Y + vMenu.Height)
         end
 
         -- Menu Title
         if vMenu.Flags & MenuFlags.NoTitle == 0 then
-            draw.Color(56, 103, 214, 255)
+            SetColorStyle(vMenu.Style.TitleBg)
             draw.FilledRect(vMenu.X, vMenu.Y, vMenu.X + vMenu.Width, vMenu.Y + tbHeight)
-            draw.Color(255, 255, 255, 255)
+            SetColorStyle(vMenu.Style.Text)
             local titleWidth, titleHeight = draw.GetTextSize(vMenu.Title)
             draw.Text(math.floor(vMenu.X + (vMenu.Width / 2) - (titleWidth / 2)), vMenu.Y + math.floor((tbHeight / 2) - (titleHeight / 2)), vMenu.Title)
             vMenu.Cursor.Y = vMenu.Cursor.Y + tbHeight
         end
 
         -- Draw Components
-        vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Space
-        vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Space
+        vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Style.Space
+        vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Style.Space
         for k, vComponent in pairs(vMenu.Components) do
             if vComponent.Visible == true and vMenu.Cursor.Y < vMenu.Height then
                 vComponent:Render(vMenu)
@@ -749,7 +773,7 @@ function MenuManager.Draw()
         end
 
         -- Reset Cursor
-        vMenu._AutoH = vMenu.Cursor.Y + vMenu.Space
+        vMenu._AutoH = vMenu.Cursor.Y + vMenu.Style.Space
         vMenu.Cursor = { X = 0, Y = 0 }
         ::continue::
     end
