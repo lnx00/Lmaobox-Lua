@@ -2,7 +2,7 @@
 Menu.lua is an easy-to-use Menu Library for Lmaobox. It allows you to create interactive menus for your scripts to configure and customize your features. Please note that you only have to create the menus and components **once** (when initializing your script for example) and do not need to call it in the *Draw* or *CreateMove* callback.
 [You can find an example script here](../Menu-Example.lua)
 
-![Screenshot](https://i.imgur.com/E6CjsAr.png)
+![Screenshot](https://i.imgur.com/k2hyOax.png)
 
 ## Usage
 Place the `Menu.lua` in the same folder as your script and load the Menu module at the beginning of you script using:

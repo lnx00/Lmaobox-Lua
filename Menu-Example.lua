@@ -43,9 +43,9 @@ menu:AddComponent(MenuLib.Button("Add Element!", AddElement))
 
 -- Add a multi combobox
 local multiCombo = {
-    { "Head", true },
-    { "Body", false },
-    { "Legs", false }
+    ["Head"] = true,
+    ["Body"] = false,
+    ["Legs"] = false
 }
 menu:AddComponent(MenuLib.MultiCombo("Targets", multiCombo))
 
