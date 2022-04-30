@@ -114,7 +114,6 @@ local function WalkTo(pCmd, pLocal, pDestination)
 
     pCmd:SetForwardMove(result.x)
     pCmd:SetSideMove(result.y)
-    pCmd:SetUpMove(result.z)
 end
 
 local function DrawLine(startPos, endPos)
