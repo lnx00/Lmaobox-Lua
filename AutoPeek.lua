@@ -126,7 +126,7 @@ end
 
 local function OnCreateMove(pCmd)
     local pLocal = entities.GetLocalPlayer()
-    if not pLocal then return end
+    if not pLocal or mEnabled:GetValue() == false then return end
 
     if pLocal:IsAlive() and input.IsButtonDown(mKey:GetValue()) then
         local localPos = pLocal:GetAbsOrigin()
@@ -212,18 +212,33 @@ local function OnCreateMove(pCmd)
 end
 
 local function OnDraw()
-    if PosPlaced == false or HasDirection == false then return end
+    if PosPlaced == false then return end
 
     draw.SetFont(options.Font)
     draw.Color(255, 255, 255, 255)
 
     -- Draw the lines
-    draw.Color(200, 200, 200, 230)
-    for k, v in pairs(LineDrawList) do
-        local start = client.WorldToScreen(v.start)
-        local endPos = client.WorldToScreen(v.endPos)
-        if start ~= nil and endPos ~= nil then
-            draw.Line(start[1], start[2], endPos[1], endPos[2])
+    if HasDirection == true then
+        draw.Color(200, 200, 200, 230)
+        for k, v in pairs(LineDrawList) do
+            local start = client.WorldToScreen(v.start)
+            local endPos = client.WorldToScreen(v.endPos)
+            if start ~= nil and endPos ~= nil then
+                draw.Line(start[1], start[2], endPos[1], endPos[2])
+            end
+        end
+    end
+
+    -- Free move line
+    if mFreeMove:GetValue() == true then
+        local pLocal = entities.GetLocalPlayer()
+        if pLocal then
+            draw.Color(255, 255, 255, 255)
+            local startPos = client.WorldToScreen(pLocal:GetAbsOrigin())
+            local endPos = client.WorldToScreen(PeekReturnVec)
+            if startPos ~= nil and endPos ~= nil then
+                draw.Line(startPos[1], startPos[2], endPos[1], endPos[2])
+            end
         end
     end
 end
