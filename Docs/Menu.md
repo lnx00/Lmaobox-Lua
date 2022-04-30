@@ -125,10 +125,11 @@ Properties for all components and menus:
 [Element]:SetVisible(state)
 ```
 
-You can access and change the menu style using [Menu].Style
+You can access and change the menu style using `[Menu].Style`:
 ```
 Style.Space = 4,
-Style.Font = MenuManager.Font,
+Style.Font = draw.CreateFont("Verdana", 14, 510),
+Style.Outline = false,
 Style.WindowBg = { 30, 30, 30, 255 },
 Style.TitleBg = { 55, 100, 215, 255 },
 Style.Text = { 255, 255, 255, 255 },
@@ -137,6 +138,7 @@ Style.ItemHover = { 65, 65, 65, 255 },
 Style.ItemActive = { 80, 80, 80, 255 },
 Style.Highlight = { 180, 180, 180, 100 }
 ```
+[Example menu style](https://i.imgur.com/uMCCN0Y.png)
 
 ## Flags
 Flags allow you to modify the drawing of windows. Here's an example on using flags:
