@@ -155,9 +155,9 @@ function Checkbox:Render(menu)
     end
 
     if self.Value then
-        draw.Color(68, 189, 50, 255) -- Checked
+        draw.Color(70, 190, 50, 255) -- Checked
     else
-        draw.Color(120, 50, 35, 255) -- Unchecked
+        draw.Color(180, 60, 60, 250) -- Unchecked
     end
 
     -- Drawing

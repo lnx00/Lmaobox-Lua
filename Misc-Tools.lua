@@ -21,6 +21,9 @@ local ObserverMode = {
 
 --[[ Menu ]]
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
+menu.Style.TitleBg = { 205, 95, 50, 255 }
+menu.Style.Outline = true
+
 local mLegJitter = menu:AddComponent(MenuLib.Checkbox("Leg Jitter", false))
 local mRageRetry = menu:AddComponent(MenuLib.Checkbox("Rage Retry", false))
 local mRageHealth = menu:AddComponent(MenuLib.Slider("Min Health", 20, 100, 30))
