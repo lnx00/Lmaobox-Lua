@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.40,
+    Version = 1.42,
     DebugInfo = false
 }
 
@@ -18,7 +18,7 @@ MenuFlags = {
     NoDrag = 1 << 2, -- Disable dragging
     AutoSize = 1 << 3, -- Auto size height to contents
     ShowAlways = 1 << 4, -- Show menu when ingame
-    Child = 1 << 5 -- Child window
+    Popup = 1 << 5 -- Popup window
 }
 
 ItemFlags = {
@@ -27,11 +27,10 @@ ItemFlags = {
     Active = 1 << 1 -- Item is always active
 }
 
-local LastMouseState = false
 local MouseReleased = false
-local DragID = 0
+local DragID = 0 -- ID of the current drag window
 local DragOffset = { 0, 0 }
-local IsInteracting = false -- Is interacting with a child menu
+local PopupOpen = false -- Is interacting with a child popup
 
 local InputMap = {}
 for i = 0, 9 do InputMap[i + 1] = tostring(i) end
@@ -58,9 +57,10 @@ local function MouseInBounds(pX, pY, pX2, pY2)
     return (mX > pX and mX < pX2 and mY > pY and mY < pY2)
 end
 
+local LastMouseState = false
 local function UpdateMouseState()
     local mouseState = input.IsButtonDown(MOUSE_LEFT)
-    MouseReleased = (mouseState == false and LastMouseState == true)
+    MouseReleased = (mouseState == false and LastMouseState)
     LastMouseState = mouseState
 end
 
@@ -150,11 +150,11 @@ function Checkbox:Render(menu)
     local chkSize = math.floor(lblHeight * 1.4)
 
     -- Interaction
-    if IsInteracting == false and MouseReleased and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize + menu.Style.Space + lblWidth, menu.Y + menu.Cursor.Y + chkSize) then
+    if (PopupOpen == false or menu:IsPopup()) and MouseReleased and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + chkSize + menu.Style.Space + lblWidth, menu.Y + menu.Cursor.Y + chkSize) then
         self.Value = not self.Value
     end
 
-    if self.Value == true then
+    if self.Value then
         draw.Color(68, 189, 50, 255) -- Checked
     else
         draw.Color(120, 50, 35, 255) -- Unchecked
@@ -166,7 +166,7 @@ function Checkbox:Render(menu)
     SetColorStyle(menu.Style.Text)
     draw.Text(menu.X + menu.Cursor.X + chkSize + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (chkSize / 2) - (lblHeight / 2)), self.Label)
 
-    if self.Value == true then
+    if self.Value then
         SetColorStyle(menu.Style.Highlight)
         draw.FilledRect(menu.X + menu.Cursor.X + menu.Style.Space, menu.Y + menu.Cursor.Y + menu.Style.Space, menu.X + menu.Cursor.X + chkSize - menu.Style.Space, menu.Y + menu.Cursor.Y + chkSize - menu.Style.Space)
     end
@@ -212,7 +212,7 @@ function Button:Render(menu)
         SetColorStyle(menu.Style.ItemActive)
     end
 
-    if not(menu.Flags & MenuFlags.Child == 0 and IsInteracting == true) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight) then
+    if (PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
             SetColorStyle(menu.Style.ItemActive)
         else
@@ -269,7 +269,7 @@ function Slider:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if IsInteracting == false and DragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
+    if (PopupOpen == false or menu:IsPopup()) and DragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
         SetColorStyle(menu.Style.ItemHover)
         
         if input.IsButtonDown(MOUSE_LEFT) then
@@ -323,7 +323,7 @@ function Textbox:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if IsInteracting == false and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
+    if PopupOpen == false and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
         SetColorStyle(menu.Style.ItemHover)
 
         local key = GetCurrentKey()
@@ -382,16 +382,17 @@ function Combobox.New(label, options, flags)
     self.Selected = options[1]
     self.Flags = flags
 
-    self._Child = MenuManager.Create("Combobox Child #" .. self.ID, MenuFlags.Child |  MenuFlags.NoTitle | MenuFlags.NoDrag | MenuFlags.AutoSize)
+    self._Child = MenuManager.CreatePopup(self)
     self._Child:SetVisible(false)
     self._Child.Style.Space = 3
     for i, vLabel in ipairs(self.Options) do
+        local activeFlag = (self.SelectedIndex == i) and ItemFlags.Active or ItemFlags.None
         self._Child:AddComponent(Button.New(vLabel, function()
             self.Selected = vLabel
             self.SelectedIndex = i
             self:UpdateButtons()
             self:SetOpen(false)
-        end, ItemFlags.FullWidth))
+        end, ItemFlags.FullWidth | activeFlag))
     end
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
@@ -425,7 +426,7 @@ function Combobox:SetOpen(state)
     if state == false and self:IsOpen() == false then return end
 
     self._Child:SetVisible(state)
-    IsInteracting = state
+    PopupOpen = state
 end
 
 function Combobox:Render(menu)
@@ -438,7 +439,7 @@ function Combobox:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if (self:IsOpen() or IsInteracting == false) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
+    if (self:IsOpen() or PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
             SetColorStyle(menu.Style.ItemActive)
         else
@@ -484,15 +485,15 @@ function MultiCombobox.New(label, options, flags)
     self.Options = options
     self.Flags = flags
 
-    self._Child = MenuManager.Create("Multibox Child #" .. self.ID, MenuFlags.Child |  MenuFlags.NoTitle | MenuFlags.NoDrag | MenuFlags.AutoSize)
+    self._Child = MenuManager.CreatePopup(self)
     self._Child:SetVisible(false)
     self._Child.Style.Space = 3
     for kOption, vActive in pairs(self.Options) do
+        local activeFlag = vActive and ItemFlags.Active or ItemFlags.None
         self._Child:AddComponent(Button.New(kOption, function()
             self.Options[kOption] = not self.Options[kOption]
             self:UpdateButtons()
-            self:SetOpen(false)
-        end, ItemFlags.FullWidth))
+        end, ItemFlags.FullWidth | activeFlag))
     end
 
     MenuManager.CurrentID = MenuManager.CurrentID + 1
@@ -501,7 +502,7 @@ end
 
 function MultiCombobox:UpdateButtons()
     for i, vComponent in ipairs(self._Child.Components) do
-        if self.Options[vComponent.Label] == true then
+        if self.Options[vComponent.Label] then
             vComponent.Flags = ItemFlags.FullWidth | ItemFlags.Active
         else
             vComponent.Flags = ItemFlags.FullWidth
@@ -510,7 +511,7 @@ function MultiCombobox:UpdateButtons()
 end
 
 function MultiCombobox:Select(index)
-    self.Options[index][2] = true
+    self.Options[index] = true
 end
 
 function MultiCombobox:IsOpen()
@@ -521,7 +522,7 @@ function MultiCombobox:SetOpen(state)
     if state == false and self:IsOpen() == false then return end
 
     self._Child:SetVisible(state)
-    IsInteracting = state
+    PopupOpen = state
 end
 
 function MultiCombobox:Render(menu)
@@ -534,7 +535,7 @@ function MultiCombobox:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if (self:IsOpen() or IsInteracting == false) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
+    if (self:IsOpen() or PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cmbWidth, menu.Y + menu.Cursor.Y + cmbHeight) then
         if input.IsButtonDown(MOUSE_LEFT) then
             SetColorStyle(menu.Style.ItemActive)
         else
@@ -568,10 +569,10 @@ local Menu = {
     Visible = true,
     X = 100, Y = 100,
     Width = 200, Height = 200,
-    Cursor = { X = 0, Y = 0 },
+    Cursor = {},
     Style = {},
     Flags = 0,
-    _AutoH = 0
+    _Owner = nil -- Owner of the popup
 }
 
 local MetaMenu = {}
@@ -582,8 +583,10 @@ function Menu.New(title, flags)
     self.ID = MenuManager.CurrentID
     self.Title = title
     self.Components = {}
+    self.Cursor = { X = 0, Y = 0 }
     self.Style = {
         Space = 4,
+        Outline = false,
         Font = MenuManager.Font,
         WindowBg = { 30, 30, 30, 255 },
         TitleBg = { 55, 100, 215, 255 },
@@ -605,6 +608,10 @@ end
 
 function Menu:Toggle()
     self.Visible = not self.Visible
+end
+
+function Menu:IsPopup()
+    return self.Flags & MenuFlags.Popup ~= 0
 end
 
 function Menu:SetTitle(title)
@@ -646,6 +653,19 @@ function MenuManager.Create(title, flags)
     local menu = Menu.New(title, flags)
     MenuManager.AddMenu(menu)
     return menu
+end
+
+function MenuManager.CreatePopup(owner, flags)
+    flags = flags or MenuFlags.None
+    flags = flags | MenuFlags.Popup | MenuFlags.NoTitle | MenuFlags.NoDrag | MenuFlags.AutoSize
+
+    local popupMenu = Menu.New("", flags)
+    popupMenu:SetVisible(false)
+    popupMenu.Style.TitleBg = popupMenu.Style.ItemActive
+    popupMenu.Style.Outline = true
+    popupMenu._Owner = owner
+    MenuManager.AddMenu(popupMenu)
+    return popupMenu
 end
 
 function MenuManager.AddMenu(menu)
@@ -723,11 +743,6 @@ function MenuManager.Draw()
 
         local tbHeight = 20
 
-        -- Auto Size
-        if vMenu.Flags & MenuFlags.AutoSize ~= 0 then
-            vMenu.Height = vMenu._AutoH
-        end
-
         -- Window drag
         if vMenu.Flags & MenuFlags.NoDrag == 0 then
             local mX = input.GetMousePos()[1]
@@ -751,6 +766,10 @@ function MenuManager.Draw()
         if vMenu.Flags & MenuFlags.NoBackground == 0 then
             SetColorStyle(vMenu.Style.WindowBg)
             draw.FilledRect(vMenu.X, vMenu.Y, vMenu.X + vMenu.Width, vMenu.Y + vMenu.Height)
+            if vMenu.Style.Outline then
+                SetColorStyle(vMenu.Style.TitleBg)
+                draw.OutlinedRect(vMenu.X, vMenu.Y, vMenu.X + vMenu.Width, vMenu.Y + vMenu.Height)
+            end
         end
 
         -- Menu Title
@@ -767,13 +786,17 @@ function MenuManager.Draw()
         vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Style.Space
         vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Style.Space
         for k, vComponent in pairs(vMenu.Components) do
-            if vComponent.Visible == true and vMenu.Cursor.Y < vMenu.Height then
+            if vComponent.Visible and vMenu.Cursor.Y < vMenu.Height then
                 vComponent:Render(vMenu)
             end
         end
 
+        -- Auto Size
+        if vMenu.Flags & MenuFlags.AutoSize ~= 0 then
+            vMenu.Height = vMenu.Cursor.Y
+        end
+
         -- Reset Cursor
-        vMenu._AutoH = vMenu.Cursor.Y + vMenu.Style.Space
         vMenu.Cursor = { X = 0, Y = 0 }
         ::continue::
     end
