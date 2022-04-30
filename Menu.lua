@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.42,
+    Version = 1.43,
     DebugInfo = false
 }
 
@@ -37,17 +37,40 @@ for i = 0, 9 do InputMap[i + 1] = tostring(i) end
 for i = 65, 90 do InputMap[i - 54] = string.char(i) end
 
 local function GetCurrentKey()
-    for i, keyText in ipairs(InputMap) do
+    for i = 0, 106 do
         if input.IsButtonDown(i) then
-            return keyText
+            return i
         end
     end
+    return nil
+end
 
-    if input.IsButtonDown(KEY_SPACE) then return "SPACE" end
-    if input.IsButtonDown(KEY_BACKSPACE) then return "BACKSPACE" end
-    if input.IsButtonDown(KEY_COMMA) then return "," end
-    if input.IsButtonDown(KEY_PERIOD) then return "." end
-    if input.IsButtonDown(KEY_MINUS) then return "-" end
+local function GetKeyName(key, specialKeys)
+    if key == nil then return nil end
+
+    if InputMap[key] then return InputMap[key]
+    elseif key == KEY_SPACE then return "SPACE"
+    elseif key == KEY_BACKSPACE then return "BACKSPACE"
+    elseif key == KEY_COMMA then return ","
+    elseif key == KEY_PERIOD then return "."
+    elseif key == KEY_MINUS then return "-" end
+    if specialKeys == false then return nil end
+
+    if key == KEY_LCONTROL then return "LCTRL"
+    elseif key == KEY_RCONTROL then return "RCTRL"
+    elseif key == KEY_LALT then return "LALT"
+    elseif key == KEY_RALT then return "RALT"
+    elseif key == KEY_LSHIFT then return "LSHIFT"
+    elseif key == KEY_RSHIFT then return "RSHIFT"
+    elseif key == KEY_ENTER then return "ENTER"
+    elseif key == KEY_UP then return "UP"
+    elseif key == KEY_LEFT then return "LEFT"
+    elseif key == KEY_DOWN then return "DOWN"
+    elseif key == KEY_RIGHT then return "RIGHT"
+    elseif key >= 37 and key <= 46 then return "KP" .. (key - 37)
+    elseif key >= 92 and key <= 103 then return "F" .. (key - 91)
+    end
+
     return nil
 end
 
@@ -166,11 +189,6 @@ function Checkbox:Render(menu)
     SetColorStyle(menu.Style.Text)
     draw.Text(menu.X + menu.Cursor.X + chkSize + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (chkSize / 2) - (lblHeight / 2)), self.Label)
 
-    if self.Value then
-        SetColorStyle(menu.Style.Highlight)
-        draw.FilledRect(menu.X + menu.Cursor.X + menu.Style.Space, menu.Y + menu.Cursor.Y + menu.Style.Space, menu.X + menu.Cursor.X + chkSize - menu.Style.Space, menu.Y + menu.Cursor.Y + chkSize - menu.Style.Space)
-    end
-
     menu.Cursor.Y = menu.Cursor.Y + chkSize + menu.Style.Space
 end
 
@@ -271,7 +289,7 @@ function Slider:Render(menu)
     SetColorStyle(menu.Style.Item)
     if (PopupOpen == false or menu:IsPopup()) and DragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
         SetColorStyle(menu.Style.ItemHover)
-        
+
         if input.IsButtonDown(MOUSE_LEFT) then
             dragX = Clamp(input.GetMousePos()[1] - (menu.X + menu.Cursor.X), 0, sliderWidth)
             self.Value = (math.floor((dragX / sliderWidth) * math.abs(self.Max - self.Min))) + self.Min
@@ -326,13 +344,13 @@ function Textbox:Render(menu)
     if PopupOpen == false and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
         SetColorStyle(menu.Style.ItemHover)
 
-        local key = GetCurrentKey()
+        local key = GetKeyName(GetCurrentKey(), false)
         if not key and self._LastKey then
             if self._LastKey == "SPACE" then
                 self.Value = self.Value .. " "
             elseif self._LastKey == "BACKSPACE" then
                 self.Value = self.Value:sub(1, -2)
-            else
+            elseif (#self._LastKey == 1) and (lblWidth < boxWidth - (menu.Style.Space * 2)) then
                 if input.IsButtonDown(KEY_LSHIFT) then
                     self.Value = self.Value .. string.upper(self._LastKey)
                 else
@@ -357,6 +375,88 @@ function Textbox:Render(menu)
     end
 
     menu.Cursor.Y = menu.Cursor.Y + boxHeight + menu.Style.Space
+end
+
+--[[ Keybind Component ]]
+local Keybind = {
+    Label = "New Keybind",
+    Key = KEY_NONE,
+    KeyName = "NONE",
+    _IsEditing = false
+}
+Keybind.__index = Keybind
+setmetatable(Keybind, Component)
+
+function Keybind.New(label, key, flags)
+    flags = flags or ItemFlags.None
+
+    local self = setmetatable({}, Keybind)
+    self.ID = MenuManager.CurrentID
+    self.Label = label
+    self.Key = key
+    self.KeyName = GetKeyName(key, true)
+    self.Flags = flags
+    self._IsEditing = false
+
+    MenuManager.CurrentID = MenuManager.CurrentID + 1
+    return self
+end
+
+function Keybind:GetValue()
+    return self.Key
+end
+
+function Keybind:Render(menu)
+    local btnLabel = self.Label .. ": " .. self.KeyName
+    if self._IsEditing then
+        SetColorStyle(menu.Style.ItemActive)
+        btnLabel = self.Label .. ": [...]"
+
+        local currentKey = GetCurrentKey()
+        if currentKey ~= nil then
+            if currentKey == KEY_ESCAPE then
+                self.Key = KEY_NONE
+                self.KeyName = "NONE"
+            else
+                self.Key = currentKey
+                self.KeyName = GetKeyName(currentKey, true) or currentKey
+            end
+            self._IsEditing = false
+        end
+    end
+
+    local lblWidth, lblHeight = draw.GetTextSize(btnLabel)
+    local btnWidth = lblWidth + (menu.Style.Space * 4)
+    if self.Flags & ItemFlags.FullWidth ~= 0 then
+        btnWidth = menu.Width - (menu.Style.Space * 2)
+    end
+
+    local btnHeight = lblHeight + (menu.Style.Space * 2)
+
+    -- Interaction
+    if self.Flags & ItemFlags.Active == 0 then
+        SetColorStyle(menu.Style.Item)
+    else
+        SetColorStyle(menu.Style.ItemActive)
+    end
+
+    if (PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            SetColorStyle(menu.Style.ItemActive)
+        else
+            SetColorStyle(menu.Style.ItemHover)
+        end
+        if MouseReleased then
+            self._IsEditing = not self._IsEditing
+        end
+    end
+
+    -- Drawing
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + btnWidth, menu.Y + menu.Cursor.Y + btnHeight)
+    SetColorStyle(menu.Style.Text)
+    draw.Text(math.floor(menu.X + menu.Cursor.X + (btnWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (btnHeight / 2) - (lblHeight / 2)), btnLabel)
+
+    menu.Cursor.Y = menu.Cursor.Y + btnHeight + menu.Style.Space
 end
 
 --[[ Combobox Compnent ]]
@@ -659,7 +759,7 @@ function MenuManager.CreatePopup(owner, flags)
     flags = flags or MenuFlags.None
     flags = flags | MenuFlags.Popup | MenuFlags.NoTitle | MenuFlags.NoDrag | MenuFlags.AutoSize
 
-    local popupMenu = Menu.New("", flags)
+    local popupMenu = Menu.New("Popup", flags)
     popupMenu:SetVisible(false)
     popupMenu.Style.TitleBg = popupMenu.Style.ItemActive
     popupMenu.Style.Outline = true
@@ -702,6 +802,11 @@ end
 function MenuManager.Textbox(label, value, flags)
     value = value or ""
     return Textbox.New(label, value, flags)
+end
+
+function MenuManager.Keybind(label, key, flags)
+    key = key or KEY_NONE
+    return Keybind.New(label, key, flags)
 end
 
 function MenuManager.Combo(label, options, flags)

@@ -43,7 +43,7 @@ MenuLib.Label("Text")
 Allows you to toggle between on/off.
 ```
 MenuLib.Checkbox("Label", value)
-[Checkbox].Value
+[Checkbox]:GetValue() -- Current state (bool)
 ```
 
 ### Button
@@ -58,6 +58,7 @@ MenuLib.Button("Label", callback)
 Allows you to select a value between a given minimum and maximum
 ```
 MenuLib.Slider("Label", min, max, value)
+[Slider]:GetValue() -- Current value (number)
 ```
 
 ### Textbox
@@ -65,6 +66,15 @@ MenuLib.Slider("Label", min, max, value)
 Allows you to enter a text. It's very basic though and only allows a small set of characters.
 ```
 MenuLib.Textbox("Label", value)
+[Textbox]:GetValue() -- Current text (string)
+```
+
+### Keybind
+![Keybind](https://i.imgur.com/qr24MrZ.png)<br/>
+Allows you to enter a keybind.
+```
+MenuLib.Keybind("Label", key)
+[Keybind]:GetValue() -- Current key (number)
 ```
 
 ### Combobox
@@ -77,6 +87,9 @@ local combo = {
   [...]
 }
 MenuLib.Combo("Label", combo)
+[Combo]:Select(index) -- Selects item at index
+[Combo]:GetSelectedIndex() -- Selected item index (number)
+[Combo].Selected -- Selected item name (string)
 ```
 
 ### Multi Combobox
@@ -90,6 +103,8 @@ local multiCombo = {
   [...]
 }
 MenuLib.MultiCombo("Label", multiCombo)
+[MultiCombo]:Select(index) -- Selects item at index
+[MultiCombo].Options -- Table of options and their current state (string, bool)
 ```
 
 ### Menu
@@ -108,7 +123,6 @@ Properties for all components and menus:
 [Element].Visible
 [Element].ID
 [Element]:SetVisible(state)
-[Element]:GetValue()
 ```
 
 You can access and change the menu style using [Menu].Style

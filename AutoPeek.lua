@@ -2,16 +2,24 @@
     Auto Peek for Lmaobox
     Author: LNX (github.com/lnx00)
 ]]
+local menuLoaded, MenuLib = pcall(require, "Menu")
+assert(menuLoaded, "MenuLib not found, please install it!")
+assert(MenuLib.Version >= 1.43, "MenuLib version is too old, please update it!")
 
 local options = {
-    Key = KEY_LSHIFT, -- Hold this key to start peeking
-    FreeMove = false, -- Allows you to move freely
-    Distance = 100, -- Max peek distance
-    Segments = 5, -- Higher values = more precise but worse performance
     Font = draw.CreateFont("Roboto", 20, 400)
 }
-assert(options.Distance > 0, "Distance must be greater than 0")
-assert(options.Segments > 0 and options.Segments < 25, "Segments must be between 1 and 25")
+
+--[[ Menu ]]
+local menu = MenuLib.Create("Auto Peek", MenuFlags.AutoSize)
+menu.Style.TitleBg = { 0, 100, 100, 255 }
+menu.Style.Outline = true
+
+local mEnabled = menu:AddComponent(MenuLib.Checkbox("Enable", true))
+local mKey = menu:AddComponent(MenuLib.Keybind("Peek Key", KEY_LSHIFT, ItemFlags.FullWidth)) -- Hold this key to start peeking
+local mFreeMove = menu:AddComponent(MenuLib.Checkbox("Free Move", false)) -- Allows you to move freely
+local mDistance = menu:AddComponent(MenuLib.Slider("Distance", 20, 400, 100)) -- Max peek distance
+local mSegments = menu:AddComponent(MenuLib.Slider("Segments", 2, 15, 5)) -- Higher values = more precise but worse performance
 
 local PosPlaced = false -- Did we start peeking?
 local IsReturning = false -- Are we returning?
@@ -20,7 +28,6 @@ local PeekStartVec = Vector3(0, 0, 0)
 local PeekDirectionVec = Vector3(0, 0, 0)
 local PeekReturnVec = Vector3(0, 0, 0)
 
-local SegmentSize = math.floor(100 / options.Segments)
 local LineDrawList = {}
 
 local Hitboxes = {
@@ -121,7 +128,7 @@ local function OnCreateMove(pCmd)
     local pLocal = entities.GetLocalPlayer()
     if not pLocal then return end
 
-    if pLocal:IsAlive() and input.IsButtonDown(options.Key) then
+    if pLocal:IsAlive() and input.IsButtonDown(mKey:GetValue()) then
         local localPos = pLocal:GetAbsOrigin()
 
         -- We just started peeking. Save the return position!
@@ -135,7 +142,7 @@ local function OnCreateMove(pCmd)
         end
 
         -- We need a peek direction (A / D)
-        if options.FreeMove == false and HasDirection == false and OnGround(pLocal) then
+        if mFreeMove:GetValue() == false and HasDirection == false and OnGround(pLocal) then
             local viewAngles = engine.GetViewAngles()
             local vDirection = Vector3(0, 0, 0)
 
@@ -143,9 +150,9 @@ local function OnCreateMove(pCmd)
                 local eyePos = localPos + pLocal:GetPropVector("localdata", "m_vecViewOffset[0]")
 
                 if input.IsButtonDown(KEY_A) or input.IsButtonDown(KEY_W) then
-                    vDirection = vDirection - (viewAngles:Right() * options.Distance) -- Left
+                    vDirection = vDirection - (viewAngles:Right() * mDistance:GetValue()) -- Left
                 elseif input.IsButtonDown(KEY_D) or input.IsButtonDown(KEY_S) then
-                    vDirection = vDirection + (viewAngles:Right() * options.Distance) -- Right
+                    vDirection = vDirection + (viewAngles:Right() * mDistance:GetValue()) -- Right
                 end
 
                 local traceDest = eyePos + vDirection
@@ -160,11 +167,12 @@ local function OnCreateMove(pCmd)
         end
 
         -- Should we peek?
-        if options.FreeMove == false and HasDirection == true then
+        if mFreeMove:GetValue() == false and HasDirection == true then
             local targetFound = false
+            local segmentSize = math.floor(100 / mSegments:GetValue())
             LineDrawList = {}
-            for i = 1, options.Segments do
-                local step = (i * SegmentSize) / 100
+            for i = 1, mSegments:GetValue() do
+                local step = (i * segmentSize) / 100
                 local currentPos = PeekStartVec + (PeekDirectionVec * step)
                 if CanAttackFromPos(pLocal, currentPos) then
                     WalkTo(pCmd, pLocal, currentPos)
@@ -220,10 +228,18 @@ local function OnDraw()
     end
 end
 
+local function OnUnload()
+    MenuLib.RemoveMenu(menu)
+
+    client.Command('play "ui/buttonclickrelease"', true)
+end
+
 callbacks.Unregister("CreateMove", "AP_CreateMove")
 callbacks.Unregister("Draw", "AP_Draw")
+callbacks.Unregister("Unload", "AP_Unload")
 
 callbacks.Register("CreateMove", "AP_CreateMove", OnCreateMove)
 callbacks.Register("Draw", "AP_Draw", OnDraw)
+callbacks.Register("Unload", "AP_Unload", OnUnload)
 
 client.Command('play "ui/buttonclick"', true)
