@@ -8,6 +8,7 @@ assert(menuLoaded, "MenuLib not found, please install it!")
 assert(MenuLib.Version >= 1.44, "MenuLib version is too old, please update it!")
 
 local LastExtenFreeze = 0
+local CurrentRTD = ""
 local ObserverMode = {
     None = 0,
     Deathcam = 1,
@@ -17,6 +18,11 @@ local ObserverMode = {
     ThirdPerson = 5,
     PointOfInterest = 6,
     FreeRoaming = 7
+}
+
+local Removals = {
+    ["RTD Effects"] = false,
+    ["HUD Texts"] = false
 }
 
 --[[ Menu ]]
@@ -41,6 +47,7 @@ local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Distance", 100, 400, 
 local mSpecSmooth = menu:AddComponent(MenuLib.Checkbox("Smooth on spectate", false))
 local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
 local mRandLag = menu:AddComponent(MenuLib.Checkbox("Random Fakelag", false))
+local mRemovals = menu:AddComponent(MenuLib.MultiCombo("Removals", Removals, ItemFlags.FullWidth))
 
 --[[ Options management ]]
 local TempOptions = {}
@@ -78,6 +85,7 @@ local function OnCreateMove(pCmd)
     if not pLocal then return end
 
     local vVelocity = pLocal:EstimateAbsVelocity()
+    local cmdButtons = pCmd:GetButtons()
 
     -- Leg Jitter
     if mLegJitter:GetValue() == true then
@@ -112,6 +120,16 @@ local function OnCreateMove(pCmd)
         if pLocal:IsAlive() and pCmd.command_number % 20 == 0 then
             local randValue = math.random(120, 315)
             gui.SetValue("fake lag value", randValue)
+        end
+    end
+
+    -- Anti RTD
+    if mRemovals:IsSelected("RTD Effects") then
+        if CurrentRTD == "Cursed" then
+            pCmd:SetForwardMove(pCmd:GetForwardMove() * (-1))
+            pCmd:SetSideMove(pCmd:GetSideMove() * (-1))
+        elseif CurrentRTD == "Drugged" or CurrentRTD == "Bad Sauce" then
+            SetOptionTemp("norecoil", 1)
         end
     end
 
@@ -188,6 +206,44 @@ local function OnStringCmd(stringCmd)
     end
 end
 
+local function OnUserMessage(userMsg)
+    local blockMessage = false
+
+    if mRemovals:IsSelected("RTD Effects") then
+        if userMsg:GetID() == Shake then blockMessage = true end
+        if userMsg:GetID() == Fade then blockMessage = true end
+
+        if userMsg:GetID() == TextMsg then
+            userMsg:Reset()
+            local msgDest = userMsg:ReadByte()
+            local msgName = userMsg:ReadString(256)
+
+            if string.find(msgName, "[RTD]") then
+                if string.find(msgName, "Your perk has worn off") or string.find(msgName, "You have died during your roll") then
+                    CurrentRTD = ""
+                elseif string.find(msgName, "Cursed") then CurrentRTD = "Cursed"
+                elseif string.find(msgName, "Drugged") then CurrentRTD = "Drugged"
+                elseif string.find(msgName, "Bad Sauce") then CurrentRTD = "Bad Sauce"
+                end
+            end
+        end
+    else
+        CurrentRTD = ""
+    end
+
+    if mRemovals:IsSelected("HUD Texts") then
+        if userMsg:GetID() == HudText or userMsg:GetID() == HudMsg then blockMessage = true end
+    end
+
+    if blockMessage then
+        local msgLength = userMsg:GetDataBits()
+        userMsg:Reset()
+        for i = 1, msgLength do
+            userMsg:WriteBit(0)
+        end
+    end
+end
+
 local function OnUnload()
     MenuLib.RemoveMenu(menu)
 
@@ -196,10 +252,12 @@ end
 
 callbacks.Unregister("CreateMove", "MCT_CreateMove")
 callbacks.Unregister("SendStringCmd", "MCT_StringCmd")
+callbacks.Unregister("DispatchUserMessage", "MCT_UserMessage")
 callbacks.Unregister("Unload", "MCT_Unload")
 
 callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)
 callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)
+callbacks.Register("DispatchUserMessage", "MCT_UserMessage", OnUserMessage)
 callbacks.Register("Unload", "MCT_Unload", OnUnload)
 
 client.Command('play "ui/buttonclick"', true)

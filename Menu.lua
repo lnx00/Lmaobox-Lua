@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.44,
+    Version = 1.45,
     DebugInfo = false
 }
 
@@ -166,6 +166,10 @@ end
 
 function Checkbox:GetValue()
     return self.Value
+end
+
+function Checkbox:IsChecked()
+    return self.Value == true
 end
 
 function Checkbox:Render(menu)
@@ -593,6 +597,7 @@ function MultiCombobox.New(label, options, flags)
         self._Child:AddComponent(Button.New(kOption, function()
             self.Options[kOption] = not self.Options[kOption]
             self:UpdateButtons()
+            self:SetOpen(false)
         end, ItemFlags.FullWidth | activeFlag))
     end
 
@@ -610,8 +615,12 @@ function MultiCombobox:UpdateButtons()
     end
 end
 
-function MultiCombobox:Select(index)
-    self.Options[index] = true
+function MultiCombobox:Select(option)
+    self.Options[option] = true
+end
+
+function MultiCombobox:IsSelected(option)
+    return self.Options[option] == true
 end
 
 function MultiCombobox:IsOpen()
