@@ -109,8 +109,8 @@ local function OnCreateMove(pCmd)
 
     -- Random Fakelag
     if mRandLag:GetValue() == true then
-        if pLocal:IsAlive() and pCmd.command_number % 4 == 0 then
-            local randValue = math.random(0, 315)
+        if pLocal:IsAlive() and pCmd.command_number % 20 == 0 then
+            local randValue = math.random(120, 315)
             gui.SetValue("fake lag value", randValue)
         end
     end
