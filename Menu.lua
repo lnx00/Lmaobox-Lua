@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.43,
+    Version = 1.44,
     DebugInfo = false
 }
 
@@ -891,7 +891,7 @@ function MenuManager.Draw()
         vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Style.Space
         vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Style.Space
         for k, vComponent in pairs(vMenu.Components) do
-            if vComponent.Visible and vMenu.Cursor.Y < vMenu.Height then
+            if vComponent.Visible and (vMenu.Flags & MenuFlags.AutoSize ~= 0 or vMenu.Cursor.Y < vMenu.Height) then
                 vComponent:Render(vMenu)
             end
         end

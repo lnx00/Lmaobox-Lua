@@ -5,7 +5,7 @@
 
 local menuLoaded, MenuLib = pcall(require, "Menu")
 assert(menuLoaded, "MenuLib not found, please install it!")
-assert(MenuLib.Version >= 1.35, "MenuLib version is too old, please update it!")
+assert(MenuLib.Version >= 1.44, "MenuLib version is too old, please update it!")
 
 local LastExtenFreeze = 0
 local ObserverMode = {
@@ -40,6 +40,7 @@ local mAutoMelee = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch", false
 local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Distance", 100, 400, 200))
 local mSpecSmooth = menu:AddComponent(MenuLib.Checkbox("Smooth on spectate", false))
 local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
+local mRandLag = menu:AddComponent(MenuLib.Checkbox("Random Fakelag", false))
 
 --[[ Options management ]]
 local TempOptions = {}
@@ -103,6 +104,14 @@ local function OnCreateMove(pCmd)
         if (pLocal:IsAlive() == false) and (globals.RealTime() > (LastExtenFreeze + 2)) then
             client.Command("extendfreeze", true)
             LastExtenFreeze = globals.RealTime()
+        end
+    end
+
+    -- Random Fakelag
+    if mRandLag:GetValue() == true then
+        if pLocal:IsAlive() and pCmd.command_number % 4 == 0 then
+            local randValue = math.random(0, 315)
+            gui.SetValue("fake lag value", randValue)
         end
     end
 
