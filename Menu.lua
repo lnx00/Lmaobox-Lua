@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.45,
+    Version = 1.46,
     DebugInfo = false
 }
 
@@ -517,6 +517,10 @@ function Combobox:GetSelectedIndex()
     return self.SelectedIndex
 end
 
+function Combobox:IsSelected(option)
+    return self.Selected == option
+end
+
 function Combobox:Select(index)
     self.SelectedIndex = index
     self.Selected = self.Options[index]
@@ -567,6 +571,11 @@ function Combobox:Render(menu)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (cmbWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (cmbHeight / 2) - (lblHeight / 2)), self.Label)
 
     menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Style.Space
+end
+
+function Combobox:Remove()
+    self:SetOpen(false)
+    MenuManager.RemoveMenu(self._Child)
 end
 
 --[[ Multi Combobox Component ]]
@@ -670,6 +679,11 @@ function MultiCombobox:Render(menu)
     menu.Cursor.Y = menu.Cursor.Y + cmbHeight + menu.Style.Space
 end
 
+function MultiCombobox:Remove()
+    self:SetOpen(false)
+    MenuManager.RemoveMenu(self._Child)
+end
+
 --[[ Menu Class ]]
 local Menu = {
     ID = 0,
@@ -752,7 +766,12 @@ function Menu:RemoveComponent(component)
 end
 
 function Menu:Remove()
-    MenuManager.RemoveMenu(self)
+    for kIndex, vComponent in pairs(self.Components) do
+        if vComponent.Remove and type(vComponent.Remove) == "function" then
+            vComponent:Remove()
+            self.Components[kIndex] = nil
+        end
+    end
 end
 
 --[[ Menu Manager ]]
@@ -782,10 +801,11 @@ function MenuManager.AddMenu(menu)
 end
 
 function MenuManager.RemoveMenu(menu)
-    for k, vMenu in pairs(MenuManager.Menus) do
+    for kIndex, vMenu in pairs(MenuManager.Menus) do
         if vMenu.ID == menu.ID then
-            vMenu.Components = {}
-            table.remove(MenuManager.Menus, k)
+            vMenu:Remove()
+            MenuManager.Menus[kIndex] = nil
+            DragID = 0
             return
         end
     end
@@ -899,7 +919,7 @@ function MenuManager.Draw()
         -- Draw Components
         vMenu.Cursor.Y = vMenu.Cursor.Y + vMenu.Style.Space
         vMenu.Cursor.X = vMenu.Cursor.X + vMenu.Style.Space
-        for k, vComponent in pairs(vMenu.Components) do
+        for l, vComponent in pairs(vMenu.Components) do
             if vComponent.Visible and (vMenu.Flags & MenuFlags.AutoSize ~= 0 or vMenu.Cursor.Y < vMenu.Height) then
                 vComponent:Render(vMenu)
             end
@@ -922,6 +942,11 @@ function MenuManager.DrawDebug()
 
     local currentY = 70
     local currentX = 50
+    draw.Text(currentX, currentY, "Memory (KB): " .. math.floor(collectgarbage("count")))
+    currentY = currentY + 20
+    draw.Text(currentX, currentY, "Menus: " .. #MenuManager.Menus)
+    currentY = currentY + 20
+
     for k, vMenu in pairs(MenuManager.Menus) do
         draw.Text(currentX, currentY, "Menu: " .. vMenu.Title .. ", Flags: " .. vMenu.Flags)
         currentY = currentY + 20

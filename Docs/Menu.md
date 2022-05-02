@@ -20,12 +20,17 @@ end
 
 After you've loaded the Menu module, you can create a new Menu (flags are optional):
 ```
-local menu = Menu.Create("Title", flags)
+local menu = MenuLib.Create("Title", flags)
 ```
 
 ...and add your components:
 ```
 [Menu]:AddComponent(<Component>)
+```
+
+If you want to remove a menu again, use:
+```
+MenuLib.RemoveMenu(<Menu>)
 ```
 
 ## Components
@@ -44,6 +49,7 @@ Allows you to toggle between on/off.
 ```
 MenuLib.Checkbox("Label", value)
 [Checkbox]:GetValue() -- Current state (bool)
+[Checkbox]:IsChecked() -- Is the checkbox checked? (bool)
 ```
 
 ### Button
@@ -89,7 +95,7 @@ local combo = {
 MenuLib.Combo("Label", combo)
 [Combo]:Select(index) -- Selects item at index
 [Combo]:GetSelectedIndex() -- Selected item index (number)
-[Combo].Selected -- Selected item name (string)
+[Combo]:IsSelected(option) -- Returns wether the option is selected (bool)
 ```
 
 ### Multi Combobox
@@ -103,7 +109,8 @@ local multiCombo = {
   [...]
 }
 MenuLib.MultiCombo("Label", multiCombo)
-[MultiCombo]:Select(index) -- Selects item at index
+[MultiCombo]:Select(index) -- Selects option by name
+[MultiCombo]:IsSelected(option) -- Returns wether the option is selected (bool)
 [MultiCombo].Options -- Table of options and their current state (string, bool)
 ```
 
@@ -115,7 +122,6 @@ A window that contains components
 [Menu]:SetSize(width, height) -- Sets the window size
 [Menu]:AddComponent(component) -- Adds the given component to the menu
 [Menu]:RemoveComponent(component) -- Removes a given component from the menu
-[Menu]:Remove() -- Removes the menu
 ```
 
 Properties for all components and menus:
