@@ -19,12 +19,13 @@ local function OnDraw()
     if not pLocal then return end
     local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
     if not pWeapon then return end
+    local critChance = pWeapon:GetCritChance()
+    if not critChance then return end
 
     local currentY = Options.Y
 
     local bucketCap = client.GetConVar("tf_weapon_criticals_bucket_cap")
     local critBucket = pWeapon:GetCritTokenBucket()
-    local critChance = pWeapon:GetCritChance()
     local dmgStats = pWeapon:GetWeaponDamageStats()
     local cmpCritChance = critChance + 0.1
 
