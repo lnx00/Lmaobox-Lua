@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.46,
+    Version = 1.50,
     DebugInfo = false
 }
 
@@ -31,6 +31,10 @@ local MouseReleased = false
 local DragID = 0 -- ID of the current drag window
 local DragOffset = { 0, 0 }
 local PopupOpen = false -- Is interacting with a child popup
+local GradientMask = draw.CreateTexture("Textures/GradientMask.png") or draw.CreateTexture("GradientMask.png")
+if not GradientMask then
+    print("[MenuLib] GradientMask.png not found! Color picker will not work!")
+end
 
 local InputMap = {}
 for i = 0, 9 do InputMap[i + 1] = tostring(i) end
@@ -92,6 +96,60 @@ local function Clamp(n, low, high) return math.min(math.max(n, low), high) end
 local function SetColorStyle(color)
     local alpha = color[4] or 255
     draw.Color(color[1], color[2], color[3], alpha)
+end
+
+local function HSVtoRGB(h, s, v)
+    local r, g, b
+
+    local i = math.floor(h * 6);
+    local f = h * 6 - i;
+    local p = v * (1 - s);
+    local q = v * (1 - f * s);
+    local t = v * (1 - (1 - f) * s);
+
+    i = i % 6
+
+    if i == 0 then r, g, b = v, t, p
+    elseif i == 1 then r, g, b = q, v, p
+    elseif i == 2 then r, g, b = p, v, t
+    elseif i == 3 then r, g, b = p, q, v
+    elseif i == 4 then r, g, b = t, p, v
+    elseif i == 5 then r, g, b = v, p, q
+    end
+
+    return math.floor(r * 255), math.floor(g * 255), math.floor(b * 255)
+end
+
+local function RGBtoHSV(r, g, b)
+    local max = math.max(r, g, b)
+    local min = math.min(r, g, b)
+    local d = max - min
+    local s = max == 0 and 0 or d / max
+    local v = max
+
+    local h
+    if max == min then
+        h = 0
+    elseif max == r then
+        h = (g - b) / d + (g < b and 6 or 0)
+    elseif max == g then
+        h = (b - r) / d + 2
+    elseif max == b then
+        h = (r - g) / d + 4
+    end
+
+    h = h / 6
+
+    return h, s, v
+end
+
+local function HexToRGB(hex)
+    hex = hex:gsub("#", "")
+    return tonumber("0x" .. hex:sub(1, 2)), tonumber("0x" .. hex:sub(3, 4)), tonumber("0x" .. hex:sub(5, 6))
+end
+
+local function RGBToHex(r, g, b)
+    return string.format("%02X%02X%02X", r, g, b)
 end
 
 --[[ Component Class ]]
@@ -291,7 +349,7 @@ function Slider:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if (PopupOpen == false or menu:IsPopup()) and DragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 5, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 10, menu.Y + menu.Cursor.Y + sliderHeight) then
+    if (PopupOpen == false or menu:IsPopup()) and DragID == 0 and MouseInBounds(menu.X + menu.Cursor.X - 4, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + sliderWidth + 8, menu.Y + menu.Cursor.Y + sliderHeight) then
         SetColorStyle(menu.Style.ItemHover)
 
         if input.IsButtonDown(MOUSE_LEFT) then
@@ -338,6 +396,10 @@ function Textbox:GetValue()
     return self.Value
 end
 
+function Textbox:SetValue(text)
+    self.Value = text or ""
+end
+
 function Textbox:Render(menu)
     local lblWidth, lblHeight = draw.GetTextSize(self.Value)
     local boxWidth = menu.Width - (menu.Style.Space * 2)
@@ -345,7 +407,7 @@ function Textbox:Render(menu)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if PopupOpen == false and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
+    if (PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + boxWidth, menu.Y + menu.Cursor.Y + boxHeight) then
         SetColorStyle(menu.Style.ItemHover)
 
         local key = GetKeyName(GetCurrentKey(), false)
@@ -461,6 +523,168 @@ function Keybind:Render(menu)
     draw.Text(math.floor(menu.X + menu.Cursor.X + (btnWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (btnHeight / 2) - (lblHeight / 2)), btnLabel)
 
     menu.Cursor.Y = menu.Cursor.Y + btnHeight + menu.Style.Space
+end
+
+--[[ Colorpicker Sub-Component ]]
+local PickerBox = {
+    Hue = 0,
+    Saturation = 1,
+    Value = 1,
+    Alpha = 255
+}
+PickerBox.__index = PickerBox
+setmetatable(PickerBox, Component)
+
+function PickerBox.New(color, flags)
+    flags = flags or ItemFlags.None
+
+    local self = setmetatable({}, PickerBox)
+    self.ID = MenuManager.CurrentID
+    self.Flags = flags
+
+    local hue, saturation, value = RGBtoHSV(color[1], color[2], color[3])
+    self.Hue = hue
+    self.Saturation = saturation
+    self.Value = value
+
+    MenuManager.CurrentID = MenuManager.CurrentID + 1
+    return self
+end
+
+function PickerBox:Render(menu)
+    local pickerWidth = menu.Width - (menu.Style.Space * 2)
+    local pickerHeight = pickerWidth
+    local previewHeight = 20
+
+    -- Color preview
+    local cR, cG, cB = HSVtoRGB(self.Hue, self.Saturation, self.Value)
+    draw.Color(cR, cG, cB, self.Alpha)
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + pickerWidth, menu.Y + menu.Cursor.Y + previewHeight)
+    menu.Cursor.Y = menu.Cursor.Y + previewHeight + menu.Style.Space
+
+    -- Color picker gradient
+    local r, g, b = HSVtoRGB(self.Hue, 1, 1)
+    draw.Color(r, g, b, 255)
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + pickerWidth, menu.Y + menu.Cursor.Y + pickerHeight)
+
+    if GradientMask then
+        draw.Color(255, 255, 255, 255)
+        draw.TexturedRect(GradientMask, menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + pickerWidth, menu.Y + menu.Cursor.Y + pickerHeight)
+    end
+
+    -- Interaction
+    if (PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X - 4, menu.Y + menu.Cursor.Y - 4, menu.X + menu.Cursor.X + pickerWidth + 8, menu.Y + menu.Cursor.Y + pickerHeight + 8) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            self.Saturation = Clamp((input.GetMousePos()[1] - menu.X - menu.Cursor.X) / pickerWidth, 0, 1)
+            self.Value = 1 - Clamp((input.GetMousePos()[2] - menu.Y - menu.Cursor.Y) / pickerHeight, 0, 1)
+        end
+    end
+
+    -- Color location indicator
+    local x = (menu.X + menu.Cursor.X) + (pickerWidth * self.Saturation)
+    local y = (menu.Y + menu.Cursor.Y + pickerHeight) - (pickerHeight * self.Value)
+    draw.Color(cR, cG, cB, 255)
+    draw.FilledRect(x - 4, y - 4, x + 8, y + 8)
+    SetColorStyle(menu.Style.Highlight)
+    draw.OutlinedRect(x - 4, y - 4, x + 8, y + 8)
+
+    menu.Cursor.Y = menu.Cursor.Y + pickerHeight + menu.Style.Space
+end
+
+--[[ Colorpicker Window ]]
+local Colorpicker = {
+    Label = "New Colorpicker",
+    Color = { 255, 0, 0, 255 },
+    _Child = nil,
+    _PickerBox = nil,
+    _HueSlider = nil,
+    _AlphaSlider = nil
+}
+Colorpicker.__index = Colorpicker
+setmetatable(Colorpicker, Component)
+
+function Colorpicker.New(label, color, flags)
+    flags = flags or ItemFlags.None
+
+    local self = setmetatable({}, Colorpicker)
+    self.ID = MenuManager.CurrentID
+    self.Label = label
+    self.Color = color
+    self.Flags = flags
+
+    local hue, saturation, value = RGBtoHSV(color[1], color[2], color[3])
+    self._Child = MenuManager.CreatePopup(self)
+    self._Child:SetVisible(false)
+    self._Child.Style.Space = 3
+    self._PickerBox = self._Child:AddComponent(PickerBox.New(color))
+    self._PickerBox.Hue = hue
+    self._PickerBox.Saturation = saturation
+    self._PickerBox.Value = value
+    self._HueSlider = self._Child:AddComponent(MenuManager.Slider("Hue", 0, 100, math.floor(hue * 100)))
+    self._AlphaSlider = self._Child:AddComponent(MenuManager.Slider("Alpha", 0, 255, 255))
+
+    MenuManager.CurrentID = MenuManager.CurrentID + 1
+    return self
+end
+
+function Colorpicker:IsOpen()
+    return self._Child.Visible
+end
+
+function Colorpicker:SetOpen(state)
+    if state == false and self:IsOpen() == false then return end
+
+    self._Child:SetVisible(state)
+    PopupOpen = state
+end
+
+function Colorpicker:Render(menu)
+    if not GradientMask then return end
+
+    local lblWidth, lblHeight = draw.GetTextSize(self.Label)
+    local cpWidth = lblWidth + (menu.Style.Space * 4)
+    if self.Flags & ItemFlags.FullWidth ~= 0 then
+        cpWidth = menu.Width - (menu.Style.Space * 2)
+    end
+    local cpHeight = lblHeight + (menu.Style.Space * 2)
+
+    -- Interaction
+    SetColorStyle(menu.Style.Item)
+    if (self:IsOpen() or PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpWidth, menu.Y + menu.Cursor.Y + cpHeight) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            SetColorStyle(menu.Style.ItemActive)
+        else
+            SetColorStyle(menu.Style.ItemHover)
+        end
+        if MouseReleased then
+            self:SetOpen(not self:IsOpen())
+        end
+    end
+
+    -- Interact with the popup window
+    if self:IsOpen() then
+        self._PickerBox.Hue = self._HueSlider:GetValue() * 0.01
+        self._PickerBox.Alpha = self._AlphaSlider:GetValue()
+        self._Child.X = menu.X + menu.Cursor.X
+        self._Child.Y = menu.Y + menu.Cursor.Y + cpHeight
+
+        local r, g, b = HSVtoRGB(self._PickerBox.Hue, self._PickerBox.Saturation, self._PickerBox.Value)
+        self.Color = { r, g, b, self._AlphaSlider:GetValue() }
+
+        SetColorStyle(menu.Style.ItemActive)
+    end
+
+    -- Drawing
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpWidth, menu.Y + menu.Cursor.Y + cpHeight)
+    SetColorStyle(menu.Style.Text)
+    draw.Text(math.floor(menu.X + menu.Cursor.X + (cpWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (cpHeight / 2) - (lblHeight / 2)), self.Label)
+
+    menu.Cursor.Y = menu.Cursor.Y + cpHeight + menu.Style.Space
+end
+
+function Colorpicker:Remove()
+    self:SetOpen(false)
+    MenuManager.RemoveMenu(self._Child)
 end
 
 --[[ Combobox Compnent ]]
@@ -838,6 +1062,11 @@ function MenuManager.Keybind(label, key, flags)
     return Keybind.New(label, key, flags)
 end
 
+function MenuManager.Colorpicker(label, color, flags)
+    color = color or { 255, 0, 0, 255 }
+    return Colorpicker.New(label, color, flags)
+end
+
 function MenuManager.Combo(label, options, flags)
     return Combobox.New(label, options, flags)
 end
@@ -964,6 +1193,6 @@ end
 callbacks.Unregister("Draw", "Draw_MenuManager")
 callbacks.Register("Draw", "Draw_MenuManager", MenuManager.Draw)
 
-print("Menu Library loaded! Version: " .. MenuManager.Version)
+print("[MenuLib] Menu Library loaded! Version: " .. MenuManager.Version)
 
 return MenuManager
