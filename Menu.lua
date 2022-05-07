@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.50,
+    Version = 1.51,
     DebugInfo = false
 }
 
@@ -31,9 +31,9 @@ local MouseReleased = false
 local DragID = 0 -- ID of the current drag window
 local DragOffset = { 0, 0 }
 local PopupOpen = false -- Is interacting with a child popup
-local GradientMask = draw.CreateTexture("Textures/GradientMask.png") or draw.CreateTexture("GradientMask.png")
-if not GradientMask then
-    print("[MenuLib] GradientMask.png not found! Color picker will not work!")
+local GradientStatus, GradientMask = pcall(draw.CreateTexture, "Textures/GradientMask.png")
+if not GradientStatus then
+    print("[MenuLib] GradientMask.png not found! Color picker will not work.")
 end
 
 local InputMap = {}
@@ -130,7 +130,7 @@ function RGBtoHSV(r, g, b)
     if max == 0 then s = 0 else s = d / max end
 
     if max == min then
-        h = 0 -- achromatic
+        h = 0
     else
         if max == r then
             h = (g - b) / d
@@ -559,7 +559,7 @@ function PickerBox:Render(menu)
     draw.Color(r, g, b, 255)
     draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + pickerWidth, menu.Y + menu.Cursor.Y + pickerHeight)
 
-    if GradientMask then
+    if GradientStatus then
         draw.Color(255, 255, 255, 255)
         draw.TexturedRect(GradientMask, menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + pickerWidth, menu.Y + menu.Cursor.Y + pickerHeight)
     end
@@ -628,7 +628,7 @@ function Colorpicker:SetOpen(state)
 end
 
 function Colorpicker:Render(menu)
-    if not GradientMask then return end
+    if not GradientStatus then return end
 
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
     local cpSize = math.floor(lblHeight * 1.4)
@@ -1057,6 +1057,7 @@ end
 
 function MenuManager.Colorpicker(label, color, flags)
     color = color or { 255, 0, 0, 255 }
+    color[4] = color[4] or 255
     return Colorpicker.New(label, color, flags)
 end
 
