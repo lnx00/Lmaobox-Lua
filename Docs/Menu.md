@@ -1,6 +1,9 @@
 # Menu Library
 Menu.lua is an easy-to-use Menu Library for Lmaobox. It allows you to create interactive menus for your scripts to configure and customize your features. Please note that you only have to create the menus and components **once** (when initializing your script for example) and do not need to call it in the *Draw* or *CreateMove* callback.
-[You can find an example script here](../Menu-Example.lua)
+[You can find an example script here](../Menu/Menu-Example.lua)
+
+If you want to use the Color Picker then you'll need to place **GradientMask.png** inside the **Textures** folder in %localappdata%!
+The file should be available under *%localappdata%/Textures/GradientMask.png*.
 
 ![Screenshot](https://i.imgur.com/k2hyOax.png)
 
@@ -82,6 +85,15 @@ Allows you to enter a keybind.
 MenuLib.Keybind("Label", key)
 [Keybind]:GetValue() -- Current key (number)
 ```
+
+### Color Picker
+![Color Picker](https://i.imgur.com/UIT95uI.png)<br/>
+Allows you to easily pick a color. **Required GradientMask.png**
+```
+MenuLib.Colorpicker("Label", color)
+[Colorpicker]:GetColor() -- Returns the selected color (table)
+```
+Color format: `{ 255, 0, 0, 255 }` or `{ 255, 0, 0 }`
 
 ### Combobox
 ![Combobox](https://i.imgur.com/VthXZZp.png)<br/>

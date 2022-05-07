@@ -575,7 +575,7 @@ function PickerBox:Render(menu)
     -- Color location indicator
     local x = (menu.X + menu.Cursor.X) + (pickerWidth * self.Saturation)
     local y = (menu.Y + menu.Cursor.Y + pickerHeight) - (pickerHeight * self.Value)
-    draw.Color(cR, cG, cB, 255)
+    draw.Color(cR, cG, cB, self.Alpha)
     draw.FilledRect(x - 4, y - 4, x + 8, y + 8)
     SetColorStyle(menu.Style.Highlight)
     draw.OutlinedRect(x - 4, y - 4, x + 8, y + 8)
@@ -627,6 +627,11 @@ function Colorpicker:SetOpen(state)
     PopupOpen = state
 end
 
+function Colorpicker:GetColor()
+    self.Color[4] = self.Color[4] or self._AlphaSlider
+    return self.Color
+end
+
 function Colorpicker:Render(menu)
     if not GradientStatus then return end
 
@@ -656,6 +661,7 @@ function Colorpicker:Render(menu)
     if self:IsOpen() then
         self._PickerBox.Hue = self._HueSlider:GetValue() * 0.01
         self._PickerBox.Alpha = self._AlphaSlider:GetValue()
+        self.Color[4] = self._AlphaSlider:GetValue()
         self._Child.X = menu.X + menu.Cursor.X
         self._Child.Y = menu.Y + menu.Cursor.Y + cpSize
 
