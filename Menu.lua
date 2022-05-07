@@ -120,36 +120,28 @@ local function HSVtoRGB(h, s, v)
     return math.floor(r * 255), math.floor(g * 255), math.floor(b * 255)
 end
 
-local function RGBtoHSV(r, g, b)
-    local max = math.max(r, g, b)
-    local min = math.min(r, g, b)
-    local d = max - min
-    local s = max == 0 and 0 or d / max
-    local v = max
+function RGBtoHSV(r, g, b)
+    r, g, b = r / 255, g / 255, b / 255
+    local max, min = math.max(r, g, b), math.min(r, g, b)
+    local h, s, v
+    v = max
 
-    local h
+    local d = max - min
+    if max == 0 then s = 0 else s = d / max end
+
     if max == min then
-        h = 0
-    elseif max == r then
-        h = (g - b) / d + (g < b and 6 or 0)
-    elseif max == g then
-        h = (b - r) / d + 2
-    elseif max == b then
-        h = (r - g) / d + 4
+        h = 0 -- achromatic
+    else
+        if max == r then
+            h = (g - b) / d
+            if g < b then h = h + 6 end
+        elseif max == g then h = (b - r) / d + 2
+        elseif max == b then h = (r - g) / d + 4
+        end
+        h = h / 6
     end
 
-    h = h / 6
-
     return h, s, v
-end
-
-local function HexToRGB(hex)
-    hex = hex:gsub("#", "")
-    return tonumber("0x" .. hex:sub(1, 2)), tonumber("0x" .. hex:sub(3, 4)), tonumber("0x" .. hex:sub(5, 6))
-end
-
-local function RGBToHex(r, g, b)
-    return string.format("%02X%02X%02X", r, g, b)
 end
 
 --[[ Component Class ]]
@@ -617,9 +609,6 @@ function Colorpicker.New(label, color, flags)
     self._Child:SetVisible(false)
     self._Child.Style.Space = 3
     self._PickerBox = self._Child:AddComponent(PickerBox.New(color))
-    self._PickerBox.Hue = hue
-    self._PickerBox.Saturation = saturation
-    self._PickerBox.Value = value
     self._HueSlider = self._Child:AddComponent(MenuManager.Slider("Hue", 0, 100, math.floor(hue * 100)))
     self._AlphaSlider = self._Child:AddComponent(MenuManager.Slider("Alpha", 0, 255, 255))
 
@@ -642,15 +631,11 @@ function Colorpicker:Render(menu)
     if not GradientMask then return end
 
     local lblWidth, lblHeight = draw.GetTextSize(self.Label)
-    local cpWidth = lblWidth + (menu.Style.Space * 4)
-    if self.Flags & ItemFlags.FullWidth ~= 0 then
-        cpWidth = menu.Width - (menu.Style.Space * 2)
-    end
-    local cpHeight = lblHeight + (menu.Style.Space * 2)
+    local cpSize = math.floor(lblHeight * 1.4)
 
     -- Interaction
     SetColorStyle(menu.Style.Item)
-    if (self:IsOpen() or PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpWidth, menu.Y + menu.Cursor.Y + cpHeight) then
+    if (self:IsOpen() or PopupOpen == false or menu:IsPopup()) and MouseInBounds(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpSize + menu.Style.Space + lblWidth, menu.Y + menu.Cursor.Y + cpSize) then
         if input.IsButtonDown(MOUSE_LEFT) then
             SetColorStyle(menu.Style.ItemActive)
         else
@@ -661,12 +646,18 @@ function Colorpicker:Render(menu)
         end
     end
 
+    if self.Value then
+        draw.Color(70, 190, 50, 255) -- Checked
+    else
+        draw.Color(180, 60, 60, 250) -- Unchecked
+    end
+
     -- Interact with the popup window
     if self:IsOpen() then
         self._PickerBox.Hue = self._HueSlider:GetValue() * 0.01
         self._PickerBox.Alpha = self._AlphaSlider:GetValue()
         self._Child.X = menu.X + menu.Cursor.X
-        self._Child.Y = menu.Y + menu.Cursor.Y + cpHeight
+        self._Child.Y = menu.Y + menu.Cursor.Y + cpSize
 
         local r, g, b = HSVtoRGB(self._PickerBox.Hue, self._PickerBox.Saturation, self._PickerBox.Value)
         self.Color = { r, g, b, self._AlphaSlider:GetValue() }
@@ -675,11 +666,13 @@ function Colorpicker:Render(menu)
     end
 
     -- Drawing
-    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpWidth, menu.Y + menu.Cursor.Y + cpHeight)
+    draw.Color(self.Color[1], self.Color[2], self.Color[3], self.Color[4])
+    draw.FilledRect(menu.X + menu.Cursor.X, menu.Y + menu.Cursor.Y, menu.X + menu.Cursor.X + cpSize, menu.Y + menu.Cursor.Y + cpSize)
+    draw.SetFont(MenuManager.Font)
     SetColorStyle(menu.Style.Text)
-    draw.Text(math.floor(menu.X + menu.Cursor.X + (cpWidth / 2) - (lblWidth / 2)), math.floor(menu.Y + menu.Cursor.Y + (cpHeight / 2) - (lblHeight / 2)), self.Label)
+    draw.Text(menu.X + menu.Cursor.X + cpSize + menu.Style.Space, math.floor(menu.Y + menu.Cursor.Y + (cpSize / 2) - (lblHeight / 2)), self.Label)
 
-    menu.Cursor.Y = menu.Cursor.Y + cpHeight + menu.Style.Space
+    menu.Cursor.Y = menu.Cursor.Y + cpSize + menu.Style.Space
 end
 
 function Colorpicker:Remove()
