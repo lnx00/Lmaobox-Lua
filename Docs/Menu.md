@@ -3,7 +3,7 @@ Menu.lua is an easy-to-use Menu Library for Lmaobox. It allows you to create int
 [You can find an example script here](../Menu/Menu-Example.lua)
 
 If you want to use the Color Picker then you'll need to place **GradientMask.png** inside the **Textures** folder in %localappdata%!
-The file should be available under *%localappdata%/Textures/GradientMask.png*.
+You can find it in Lmaobox-LUA/Menu/Textures and it should be available under *%localappdata%/Textures/GradientMask.png*.
 
 ![Screenshot](https://i.imgur.com/k2hyOax.png)
 
