@@ -76,6 +76,8 @@ local function DispatchUserMessage( msg )
         -- Clean the message
         local origMessage = message
         message = message:lower()
+        message = message:gsub("!", "i")
+        message = message:gsub("|", "i")
         message = message:gsub("%s+", "")
         message = message:gsub("4", "a")
         message = message:gsub("0", "o")
