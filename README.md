@@ -2,7 +2,7 @@
 Collection of my LUA files for Lmaobox
 
 ## Table of contents
-- **ChatCensor.lua:** Clears the chat if a player accuses you. Remeber that you can't see the chat clear if **Remove Unprintable** is enabled in Lmaobox.
+- **ChatCensor.lua:** Clears the chat if a player accuses you. Remember that you can't see the chat clear if **Remove Unprintable** is enabled in Lmaobox.
 - **Freecam.lua:** Allows you to fly around in the map while holding the freecam key. You can customize the freecam key (Defaults to Shift) and the camera speed.
 - **AutoQueue.lua:** Automatically queues for a new match.
 - **MC-Healthbar.lua** Minecraft Healthbar for TF2. Make sure to copy the *Textures* folder into your TF2 directory!
