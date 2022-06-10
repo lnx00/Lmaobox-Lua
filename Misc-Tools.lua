@@ -7,8 +7,9 @@ local menuLoaded, MenuLib = pcall(require, "Menu")
 assert(menuLoaded, "MenuLib not found, please install it!")
 assert(MenuLib.Version >= 1.44, "MenuLib version is too old, please update it!")
 
-local LastExtenFreeze = 0
-local CurrentRTD = ""
+
+
+--[[ Menu Sub-categories ]]--
 local ObserverMode = {
     None = 0,
     Deathcam = 1,
@@ -23,11 +24,6 @@ local Removals = {
     ["RTD Effects"] = false,
     ["HUD Texts"] = false
     }
-local prTimer = 0
-local flTimer = 0
-local ttTimer = 0
-local c2Timer = 0
-local c2Timer2 = 0
 local Callouts = {
     ["Battle Cry Melee"] = false,   -- C2
     -- ["Medic!"] = false,             -- Call for medic when low on health (or spam it if there is no medic?)
@@ -42,6 +38,16 @@ local Callouts = {
     -- ["Nice Shot"] = false,          -- If a sniper nearby gets a headshot, callout that
     -- ["Good Job"] = false,           -- If a someone nearby gets a kill, callout that
 }
+
+--[[Varibles used for looping]]
+local LastExtenFreeze = 0
+local prTimer = 0
+local flTimer = 0
+local ttTimer = 0
+local c2Timer = 0
+local c2Timer2 = 0
+
+
 --[[ Menu ]]
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
 menu.Style.TitleBg = { 205, 95, 50, 255 }
