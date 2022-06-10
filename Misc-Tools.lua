@@ -214,6 +214,10 @@ local function OnCreateMove(pCmd)
     local players = entities.FindByClass("CTFPlayer")
     for k, vPlayer in pairs(players) do
         if vPlayer:IsValid() == false then goto continue end
+    local vWeapon = vPlayer:GetPropEntity("m_hActiveWeapon")
+    local vWeaponitemDefinitionIndex = vWeapon:GetPropInt( "m_iItemDefinitionIndex" )
+    local vWeaponitemDefinition = itemschema.GetItemDefinitionByID( vWeaponitemDefinitionIndex )
+    local vWeaponName = vWeaponitemDefinition:GetName()
 
         -- Smooth on spectate
         if mLegitSpec:GetValue() == true then
@@ -261,13 +265,12 @@ local function OnCreateMove(pCmd)
         -- Retry when stunned
         if (mRetryStunned:GetValue() == true) and (pLocal:IsAlive()) then
             if (pLocal:InCond(15)) then
-                client.command("retry", true)
+                client.command("retry", true) -- hopefully this doesn't spam console too fast
+            elseif (pLocal:InCond(7)) then
+                 if (distance <= 200) and (vWeaponName = TF_WEAPON_FISTS) then -- probably works?
+                 client.command("retry", true)
+                 end
             end
-            -- elseif (pLocal:InCond(7)) then
-            --      if (vPlayer:         -- Check if closest player is heavy with snowgloves
-            --         client.command("retry", true)
-            --      end
-            -- end
         end
 
         local sneakyboy = false
