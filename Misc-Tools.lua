@@ -18,12 +18,14 @@ local ObserverMode = {
     ThirdPerson = 5,
     PointOfInterest = 6,
     FreeRoaming = 7
-}
-
+    }
 local Removals = {
     ["RTD Effects"] = false,
     ["HUD Texts"] = false
-}
+    }
+local prTimer = 0
+local flTimer = 0
+local ttTimer = 0
 
 --[[ Menu ]]
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
@@ -31,22 +33,30 @@ menu.Style.TitleBg = { 205, 95, 50, 255 }
 menu.Style.Outline = true
 
 local mLegJitter = menu:AddComponent(MenuLib.Checkbox("Leg Jitter", false))
-local mRageRetry = menu:AddComponent(MenuLib.Checkbox("Rage Retry", false))
-local mRageHealth = menu:AddComponent(MenuLib.Slider("Min Health", 20, 100, 30))
-local mNCName = menu:AddComponent(MenuLib.Textbox("Custom name..."))
-menu:AddComponent(MenuLib.Button("Set name", function()
-    client.Command('name "' .. mNCName:GetValue() .. '"', true)
+local mFastStop = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)", false))
+local mJazzHands = menu:AddComponent(MenuLib.Checkbox("Jazz Hands", false))
+menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function()
+    client.SetConVar("cl_wpn_sway_interp", 0)
+    client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)
+    client.SetConVar("cl_bobcycle", 10000)
 end, ItemFlags.FullWidth))
-local mExtendFreeze = menu:AddComponent(MenuLib.Checkbox("Infinite Respawn", false))
-menu:AddComponent(MenuLib.Button("Enable Weapon Sway", function()
-    client.SetConVar("cl_wpn_sway_interp", 0.05)
-end, ItemFlags.FullWidth))
-local mFLMelee = menu:AddComponent(MenuLib.Checkbox("Latency on Melee", false))
+--local mRetryStunned = menu:AddComponent(MenuLib.Checkbox("Retry When Stunned", false)) -- not implemented yet: retry if we get stunned (vs taunt kills, etc)
+local mRetryLowHP = menu:AddComponent(MenuLib.Checkbox("Retry When Low HP", false))
+local mRetryLowHPValue = menu:AddComponent(MenuLib.Slider("Retry HP", 1, 299, 30))
+local mLegitSpec = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated", false))
 local mAutoMelee = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch", false))
-local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Distance", 100, 400, 200))
-local mSpecSmooth = menu:AddComponent(MenuLib.Checkbox("Smooth on spectate", false))
-local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
+local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Switch Distance", 100, 700, 200))
+local mAutoFL = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency", false))
+local mAutoFLDist = menu:AddComponent(MenuLib.Slider("Auto Latency Distance", 100, 700, 350))
+local mRandPing = menu:AddComponent(MenuLib.Checkbox("Random Ping", false))
+local mRandPingValue = menu:AddComponent(MenuLib.Slider("Ping Randomness", 1, 15, 8))
 local mRandLag = menu:AddComponent(MenuLib.Checkbox("Random Fakelag", false))
+local mRandLagValue = menu:AddComponent(MenuLib.Slider("Fakelag Randomness", 1, 200, 21))
+local mRandLagMin = menu:AddComponent(MenuLib.Slider("Fakelag Min", 1, 314, 120))
+local mRandLagMax = menu:AddComponent(MenuLib.Slider("Fakelag Max", 2, 315, 315))
+local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
+local mExtendFreeze = menu:AddComponent(MenuLib.Checkbox("Infinite Respawn Timer", false))
+--local mRageSpecKill = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false)) -- fuck you "pizza pasta", stop spectating me
 local mRemovals = menu:AddComponent(MenuLib.MultiCombo("Removals", Removals, ItemFlags.FullWidth))
 
 --[[ Options management ]]
@@ -91,18 +101,52 @@ local function OnCreateMove(pCmd)
     if mLegJitter:GetValue() == true then
         if (pCmd.forwardmove == 0) and (pCmd.sidemove == 0) and (vVelocity:Length2D() < 10) then
             if pCmd.command_number % 2 == 0 then
-                pCmd:SetForwardMove(2)
-                pCmd:SetSideMove(2)
+                pCmd:SetSideMove(9)
             else
-                pCmd:SetForwardMove(-2)
-                pCmd:SetSideMove(-2)
+                pCmd:SetSideMove(-9)
             end
         end
     end
 
-    -- Rage Retry
-    if mRageRetry:GetValue() == true then
-        if (pLocal:IsAlive()) and (pLocal:GetHealth() > 0 and (pLocal:GetHealth()) <= mRageHealth:GetValue()) then
+    -- Fast Stop
+    if mFastStop:GetValue() == true then
+        if (pLocal:IsAlive()) and (pCmd.forwardmove == 0) and (pCmd.sidemove == 0) and (vVelocity:Length2D() > 10) then
+            local fsx, fsy, fsz = vVelocity:Unpack()
+            print(fsx, fsy, fsz)
+            if (fsz < 0.01) then -- vertical velocity doesn't seem to change when walking on/off a teleporter or on ramps/slopes.
+                --     pCmd:SetForwardMove(fsx) -- Need to figure out how to turn absolute velocity into relative velocity. I'm not sure how to do it.
+                --     pCmd:SetSideMove(fsy)
+                print("Fast Stop would run right now.. if it worked. X: " .. math.floor(fsx) .. " Y: " .. math.floor(fsy) .. " Z: " .. math.floor(fsz))
+            end
+        end
+    end
+
+
+    -- Jazz Hands (lmao)
+    if mJazzHands:GetValue() == true then
+        if pCmd.command_number % 2 == 0 then
+            client.SetConVar("cl_flipviewmodels", 1 )
+        else
+            client.SetConVar("cl_flipviewmodels", 0)
+        end
+    end
+
+    -- Retry when stunned
+    -- if mRetryStunned:GetValue() == true then
+    --     if (pLocal:IsAlive()) and ????
+    --         client.command("retry", true)
+    --     end
+    -- end
+    --
+    -- Things needed to check for:
+    -- TF_COND_TAUNTING (check if nearest player is a heavy with melee out)
+    -- Tauntkills / "Stun" effect (engineer's "organ grinder", medic's "spinal tap", sniper's "skewer")
+    -- End of round hands-up thing (only if you have line-of-sight of an enemy?)
+
+
+    -- Retry when low hp
+    if mRetryLowHP:GetValue() == true then
+        if (pLocal:IsAlive()) and (pLocal:GetHealth() > 0 and (pLocal:GetHealth()) <= mRetryLowHPValue:GetValue()) then
             client.Command("retry", true)
         end
     end
@@ -117,9 +161,25 @@ local function OnCreateMove(pCmd)
 
     -- Random Fakelag
     if mRandLag:GetValue() == true then
-        if pLocal:IsAlive() and pCmd.command_number % 20 == 0 then
-            local randValue = math.random(120, 315)
+        flTimer = flTimer +1
+        if (flTimer >= mRandLagValue:GetValue()) then
+            flTimer = 0
+            local randValue = math.random(mRandLagMin:GetValue(), mRandLagMax:GetValue())
             gui.SetValue("fake lag value", randValue)
+        end
+    end
+
+    -- Random Ping
+    if mRandPing:GetValue() == true then
+        prTimer = prTimer +1
+        if (prTimer >= mRandPingValue:GetValue() * 66) then
+            prTimer = 0
+            local prActive = gui.GetValue("ping reducer")
+            if (prActive == 0) then
+                gui.SetValue("ping reducer", 1)
+            elseif (prActive == 1) then
+                gui.SetValue("ping reducer", 0) 
+            end
         end
     end
 
@@ -129,7 +189,7 @@ local function OnCreateMove(pCmd)
             pCmd:SetForwardMove(pCmd:GetForwardMove() * (-1))
             pCmd:SetSideMove(pCmd:GetSideMove() * (-1))
         elseif CurrentRTD == "Drugged" or CurrentRTD == "Bad Sauce" then
-            SetOptionTemp("norecoil", 1)
+            --SetOptionTemp("norecoil", 1) --can get you banned in community servers 🤔
         end
     end
 
@@ -137,15 +197,6 @@ local function OnCreateMove(pCmd)
     local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
     if not pWeapon then return end
 
-    -- Fake Latency on Melee
-    if (mFLMelee:GetValue() == true) and (pLocal:IsAlive()) then
-        local flActive = gui.GetValue("fake latency")
-        if (pWeapon:IsMeleeWeapon() == true) and (flActive == 0) then
-            gui.SetValue("fake latency", 1)
-        elseif (pWeapon:IsMeleeWeapon() == false) and (flActive == 1) then
-            gui.SetValue("fake latency", 0)
-        end
-    end
 
     -- [[ Features that need to iterate through all players ]]
     local players = entities.FindByClass("CTFPlayer")
@@ -153,15 +204,35 @@ local function OnCreateMove(pCmd)
         if vPlayer:IsValid() == false then goto continue end
 
         -- Smooth on spectate
-        if mSpecSmooth:GetValue() == true then
-            local obsMode = pLocal:GetPropInt("m_iObserverMode")
+        if mLegitSpec:GetValue() == true then
+            --local obsMode = pLocal:GetPropInt("m_iObserverMode") -- todo: add first-person switch for first-person only (I don't want to rage-backstab people in third-person, it's still suspicious)
             local obsTarget = pLocal:GetPropEntity("m_hObserverTarget")
             if obsMode and obsTarget then
-                if (obsTarget:GetIndex() == pLocal:GetIndex()) and (obsMode == ObserverMode.FirstPerson) then
-                    SetOptionTemp("aim method", "smooth")
+                if (obsTarget:GetIndex() == pLocal:GetIndex()) then
+                    SetOptionTemp("aim method", "assistance")
+                    SetOptionTemp("auto backstab", "legit")
+                    SetOptionTemp("auto sapper", "legit")
+                    SetOptionTemp("melee aimbot", "legit")
+                    SetOptionTemp("auto detonate sticky", "legit")
+                    SetOptionTemp("auto airblast", "legit")
+                    SetOptionTemp("sniper: shoot through teammates", "off") -- no clue if this works
+                    SetOptionTemp("fake latency", "off")
+                    SetOptionTemp("fake lag", "off")
+                    SetOptionTemp("ping reducer", "off") -- this stuff probably doesn't work with smart/auto fake latency / randomize ping
                 end
             end
         end
+
+        -- -- Spectator Killbind (Rage)
+        -- if mLegitSpec:GetValue() == true then
+        --     local obsRTarget = pLocal:GetPropEntity("m_hObserverTarget")
+        --     if obsRMode and obsRTarget then
+        --         if (obsRTarget:GetIndex() == pLocal:GetIndex()) then
+        --             if (obsRTarget:GetIndex() == -- if target has priority >= 1
+        --                 client.command("explode", true) -- kill ourselves. explode so they can't see our cosmetics, because fuck whoever this guy is.
+        --         end
+        --     end
+        -- end
 
         if vPlayer:IsAlive() == false then goto continue end
         if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end
@@ -170,12 +241,21 @@ local function OnCreateMove(pCmd)
         local distance = distVector:Length()
 
         if vPlayer:GetTeamNumber() == pLocal:GetTeamNumber() then goto continue end
+        if pLocal:IsAlive() == false and (mAutoFL:GetValue() == true) then gui.SetValue("fake latency", 0) end
         if pLocal:IsAlive() == false then goto continue end
 
         -- Auto Melee Switch
         if (mAutoMelee:GetValue() == true) and (distance <= mMeleeDist:GetValue()) and (pWeapon:IsMeleeWeapon() == false) then
             print(distance)
             client.Command("slot3", true) -- We don't have access to pCmd.weaponselect :(
+        end
+        
+        -- Auto Fake Latency
+        if (mAutoFL:GetValue() == true) and (pLocal:IsAlive() == true) and (distance <= mAutoFLDist:GetValue()) and (pWeapon:IsMeleeWeapon() == true) then
+            gui.SetValue("fake latency", 1)
+            sleep(0) -- the code doesn't work unless this is here. don't delete this line. I know sleep() doesn't exist in lua. I know this doesn't do anything. I know this spams console. Just don't delete this line. The code stops working if this line is removed.
+        elseif (mAutoFL:GetValue() == true) then
+            gui.SetValue("fake latency", 0)
         end
 
         ::continue::
