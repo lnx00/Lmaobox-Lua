@@ -242,7 +242,7 @@ local function OnCreateMove(pCmd)
         end
 
         -- -- Spectator Killbind (Rage)
-        -- if mLegitSpec:GetValue() == true then
+        -- if mRageSpecKill:GetValue() == true then
         --     local obsRTarget = pLocal:GetPropEntity("m_hObserverTarget")
         --     if obsRMode and obsRTarget then
         --         if (obsRTarget:GetIndex() == pLocal:GetIndex()) then
@@ -266,10 +266,8 @@ local function OnCreateMove(pCmd)
         if (mRetryStunned:GetValue() == true) and (pLocal:IsAlive()) then
             if (pLocal:InCond(15)) then
                 client.command("retry", true) -- hopefully this doesn't spam console too fast
-            elseif (pLocal:InCond(7)) then
-                 if (distance <= 200) and (vWeaponName = TF_WEAPON_FISTS) then -- probably works?
+            elseif (pLocal:InCond(7)) and (distance <= 200) and (vWeaponName:GetValue() == TF_WEAPON_FISTS) then -- probably works?
                  client.command("retry", true)
-                 end
             end
         end
 
