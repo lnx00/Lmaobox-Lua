@@ -26,12 +26,29 @@ local Removals = {
 local prTimer = 0
 local flTimer = 0
 local ttTimer = 0
-
+local c2Timer = 0
+local c2Timer2 = 0
+local Callouts = {
+    ["Battle Cry Melee"] = false,   -- C2
+    -- ["Medic!"] = false,             -- Call for medic when low on health (or spam it if there is no medic?)
+    -- ["Yes"] = false,                -- Say "Yes" if someone nearby says No (lmao)
+    -- ["No"] = false,                 -- Say "No" at certain responses ("You are a spy", etc)
+    -- ["Spy"] = false,                -- Callout Spies
+    -- ["Teleporter Here"] = false,    -- If we respawn, but there's no teleporters nearby, request a teleporter
+    -- ["Activate Charge"] = false,    -- If the medic ubering us has full charge, replace our "Medic!" callout with this
+    -- ["Help!"] = false,              -- If there's no medic on our team, call for help at low health
+    -- ["Positive"] = false,           -- When we do anything to get points (assists, sap buildings, etc)
+    -- ["Negative"] = false,           -- idk bad things? enemy caps points, our medic dies, etc
+    -- ["Nice Shot"] = false,          -- If a sniper nearby gets a headshot, callout that
+    -- ["Good Job"] = false,           -- If a someone nearby gets a kill, callout that
+}
 --[[ Menu ]]
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
 menu.Style.TitleBg = { 205, 95, 50, 255 }
 menu.Style.Outline = true
 
+
+local mCallouts = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu WIP", Callouts, ItemFlags.FullWidth))
 local mLegJitter = menu:AddComponent(MenuLib.Checkbox("Leg Jitter", false))
 local mFastStop = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)", false))
 local mJazzHands = menu:AddComponent(MenuLib.Checkbox("Jazz Hands", false))
@@ -40,10 +57,11 @@ menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function()
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)
     client.SetConVar("cl_bobcycle", 10000)
 end, ItemFlags.FullWidth))
---local mRetryStunned = menu:AddComponent(MenuLib.Checkbox("Retry When Stunned", false)) -- not implemented yet: retry if we get stunned (vs taunt kills, etc)
+local mRetryStunned = menu:AddComponent(MenuLib.Checkbox("Retry When Stunned", false))
 local mRetryLowHP = menu:AddComponent(MenuLib.Checkbox("Retry When Low HP", false))
 local mRetryLowHPValue = menu:AddComponent(MenuLib.Slider("Retry HP", 1, 299, 30))
 local mLegitSpec = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated", false))
+local mLegitSpecFP = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only", false))
 local mAutoMelee = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch", false))
 local mMeleeDist = menu:AddComponent(MenuLib.Slider("Melee Switch Distance", 100, 700, 200))
 local mAutoFL = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency", false))
@@ -131,19 +149,6 @@ local function OnCreateMove(pCmd)
         end
     end
 
-    -- Retry when stunned
-    -- if mRetryStunned:GetValue() == true then
-    --     if (pLocal:IsAlive()) and ????
-    --         client.command("retry", true)
-    --     end
-    -- end
-    --
-    -- Things needed to check for:
-    -- TF_COND_TAUNTING (check if nearest player is a heavy with melee out)
-    -- Tauntkills / "Stun" effect (engineer's "organ grinder", medic's "spinal tap", sniper's "skewer")
-    -- End of round hands-up thing (only if you have line-of-sight of an enemy?)
-
-
     -- Retry when low hp
     if mRetryLowHP:GetValue() == true then
         if (pLocal:IsAlive()) and (pLocal:GetHealth() > 0 and (pLocal:GetHealth()) <= mRetryLowHPValue:GetValue()) then
@@ -193,6 +198,7 @@ local function OnCreateMove(pCmd)
         end
     end
 
+
     --[[ Features that require access to the weapon ]]
     local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
     if not pWeapon then return end
@@ -205,10 +211,12 @@ local function OnCreateMove(pCmd)
 
         -- Smooth on spectate
         if mLegitSpec:GetValue() == true then
-            --local obsMode = pLocal:GetPropInt("m_iObserverMode") -- todo: add first-person switch for first-person only (I don't want to rage-backstab people in third-person, it's still suspicious)
+            local obsMode = pLocal:GetPropInt("m_iObserverMode")
             local obsTarget = pLocal:GetPropEntity("m_hObserverTarget")
             if obsMode and obsTarget then
-                if (obsTarget:GetIndex() == pLocal:GetIndex()) then
+                if (obsMode == ObserverMode.ThirdPerson) and (mLegitSpecFP:GetValue() == true) then -- Untested
+                    return
+                elseif (obsTarget:GetIndex() == pLocal:GetIndex()) then
                     SetOptionTemp("aim method", "assistance")
                     SetOptionTemp("auto backstab", "legit")
                     SetOptionTemp("auto sapper", "legit")
@@ -244,20 +252,53 @@ local function OnCreateMove(pCmd)
         if pLocal:IsAlive() == false and (mAutoFL:GetValue() == true) then gui.SetValue("fake latency", 0) end
         if pLocal:IsAlive() == false then goto continue end
 
+        -- Retry when stunned
+        if (mRetryStunned:GetValue() == true) and (pLocal:IsAlive()) then
+            if (pLocal:InCond(15)) then
+                client.command("retry", true)
+            end
+            -- elseif (pLocal:InCond(7)) then
+            --      if (vPlayer:         -- Check if closest player is heavy with snowgloves
+            --         client.command("retry", true)
+            --      end
+            -- end
+        end
+
+        local sneakyboy = false
+        if pLocal:InCond(4) or pLocal:InCond(3) or pLocal:InCond(2) or pLocal:InCond(13) or pLocal:InCond(9) then
+            sneakyboy = true
+        end
+
         -- Auto Melee Switch
-        if (mAutoMelee:GetValue() == true) and (distance <= mMeleeDist:GetValue()) and (pWeapon:IsMeleeWeapon() == false) then
+        if (mAutoMelee:GetValue() == true) and (distance <= mMeleeDist:GetValue()) and (pWeapon:IsMeleeWeapon() == false) and (sneakyboy == false) then
             print(distance)
             client.Command("slot3", true) -- We don't have access to pCmd.weaponselect :(
         end
         
         -- Auto Fake Latency
-        if (mAutoFL:GetValue() == true) and (pLocal:IsAlive() == true) and (distance <= mAutoFLDist:GetValue()) and (pWeapon:IsMeleeWeapon() == true) then
+        if (mAutoFL:GetValue() == true) and (pLocal:IsAlive() == true) and (distance <= mAutoFLDist:GetValue()) and (pWeapon:IsMeleeWeapon() == true) and (sneakyboy == false) then
             gui.SetValue("fake latency", 1)
-            sleep(0) -- the code doesn't work unless this is here. don't delete this line. I know sleep() doesn't exist in lua. I know this doesn't do anything. I know this spams console. Just don't delete this line. The code stops working if this line is removed.
+            return
         elseif (mAutoFL:GetValue() == true) then
             gui.SetValue("fake latency", 0)
         end
 
+        -- Auto C2
+        if mCallouts:IsSelected("Battle Cry Melee") and (pLocal:IsAlive()) and (pWeapon:IsMeleeWeapon() == true) and (sneakyboy == false) then
+            c2Timer = c2Timer + 1 -- trace every 0.5 seconds
+            c2Timer2 = c2Timer2 + 1 -- attempt C2 every 2 seconds
+            if (c2Timer >= 0.5 * 66) then
+                c2Timer = 0
+                local mC2Source = pLocal:GetAbsOrigin() + pLocal:GetPropVector( "localdata", "m_vecViewOffset[0]" )
+                local mC2Destination = mC2Source + engine.GetViewAngles():Forward() * 500;
+                local mC2Trace = engine.TraceLine(mC2Source, mC2Destination, MASK_SHOT_HULL)
+                if (mC2Trace.entity ~= nil) and (mC2Trace.entity:GetClass() == "CTFPlayer") and (mC2Trace.entity:GetTeamNumber() ~= pLocal:GetTeamNumber()) and ((c2Timer2 >= 2 * 66)) then
+                    c2Timer2 = 0
+                    client.Command("voicemenu 2 1", true)
+                    print("Successfully triggered C2")
+                end
+            end
+        end
         ::continue::
     end
     CheckTempOptions()
