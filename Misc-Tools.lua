@@ -292,7 +292,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         -- end
 
         if vPlayer:IsAlive() == false then goto continue end
-        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            --Code below this line doesn't work if you're the only player in the game.
+        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            -- Code below this line doesn't work if you're the only player in the game.
 
         local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
         local distance   = distVector:Length()                                       -- Set "distance" to the length of "distVector"
