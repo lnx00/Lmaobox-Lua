@@ -1,7 +1,7 @@
---[[
-    Misc Tools for Lmaobox
-    Author: LNX (github.com/lnx00)
-]]
+--[[                                    ]]--
+--[[    Misc Tools for Lmaobox          ]]--
+--[[    Author: LNX (github.com/lnx00)  ]]--
+--[[                                    ]]--
 
 local menuLoaded, MenuLib = pcall(require, "Menu")
 assert(menuLoaded, "MenuLib not found, please install it!")
@@ -10,7 +10,7 @@ assert(MenuLib.Version >= 1.44, "MenuLib version is too old, please update it!")
 
 
 --[[ Menu Sub-categories ]]--
-local ObserverMode = {
+local ObserverMode = { 
     None = 0,
     Deathcam = 1,
     FreezeCam = 2,
@@ -20,35 +20,34 @@ local ObserverMode = {
     PointOfInterest = 6,
     FreeRoaming = 7
     }
-local Removals = {
+local Removals = { -- May be removed in the future
     ["RTD Effects"] = false,
     ["HUD Texts"] = false
     }
-local Callouts = {
-    ["Battle Cry Melee"] = false,   -- C2
-    -- ["Medic!"] = false,             -- Call for medic when low on health (or spam it if there is no medic?)
-    -- ["Yes"] = false,                -- Say "Yes" if someone nearby says No (lmao)
-    -- ["No"] = false,                 -- Say "No" at certain responses ("You are a spy", etc)
-    -- ["Spy"] = false,                -- Callout Spies
-    -- ["Teleporter Here"] = false,    -- If we respawn, but there's no teleporters nearby, request a teleporter
-    -- ["Activate Charge"] = false,    -- If the medic ubering us has full charge, replace our "Medic!" callout with this
-    -- ["Help!"] = false,              -- If there's no medic on our team, call for help at low health
-    -- ["Positive"] = false,           -- When we do anything to get points (assists, sap buildings, etc)
-    -- ["Negative"] = false,           -- idk bad things? enemy caps points, our medic dies, etc
-    -- ["Nice Shot"] = false,          -- If a sniper nearby gets a headshot, callout that
-    -- ["Good Job"] = false,           -- If a someone nearby gets a kill, callout that
+local Callouts = { -- Callouts are not yet fully implemented
+    ["Battle Cry Melee"] = false,       -- C2 when using melee and looking at enemy
+    -- ["Medic!"] = false,              -- Call for medic when low on health (or spam it if there is no medic?)
+    -- ["Yes"] = false,                 -- Say "Yes" if someone nearby says No (lmao)
+    -- ["No"] = false,                  -- Say "No" at certain responses ("You are a spy", etc)
+    -- ["Spy"] = false,                 -- Callout Spies
+    -- ["Teleporter Here"] = false,     -- If we respawn, but there's no teleporters nearby, request a teleporter
+    -- ["Activate Charge"] = false,     -- If the medic ubering us has full charge, replace our "Medic!" callout with this
+    -- ["Help!"] = false,               -- If there's no medic on our team, call for help at low health when there's a teammate nearby
+    -- ["Positive"] = false,            -- When we do anything to get points (assists, sap buildings, etc)
+    -- ["Negative"] = false,            -- idk bad things? enemy caps points, our medic dies, etc
+    -- ["Nice Shot"] = false,           -- If a sniper nearby gets a headshot
+    -- ["Good Job"] = false,            -- If a someone nearby gets a kill
 }
 
---[[Varibles used for looping]]
-local LastExtenFreeze = 0
-local prTimer = 0
-local flTimer = 0
-local ttTimer = 0
-local c2Timer = 0
-local c2Timer2 = 0
+--[[ Varibles used for looping ]]--
+local LastExtenFreeze = 0 -- Spectator Mode
+local prTimer = 0 -- Timer for Random Ping
+local flTimer = 0 -- Timer for Fake Latency
+local c2Timer = 0 -- Timer for Battle Cry Melee raytracing
+local c2Timer2 = 0 -- Timer for ^ to prevent spamming
 
 
---[[ Menu ]]
+--[[ Menu ]]--
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
 menu.Style.TitleBg = { 205, 95, 50, 255 }
 menu.Style.Outline = true
@@ -57,7 +56,7 @@ menu.Style.Outline = true
 local mCallouts = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu WIP", Callouts, ItemFlags.FullWidth))
 local mLegJitter = menu:AddComponent(MenuLib.Checkbox("Leg Jitter", false))
 local mFastStop = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)", false))
-local mJazzHands = menu:AddComponent(MenuLib.Checkbox("Jazz Hands", false))
+local mWFlip = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip", false))
 menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function()
     client.SetConVar("cl_wpn_sway_interp", 0)
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)
@@ -80,10 +79,10 @@ local mRandLagMin = menu:AddComponent(MenuLib.Slider("Fakelag Min", 1, 314, 120)
 local mRandLagMax = menu:AddComponent(MenuLib.Slider("Fakelag Max", 2, 315, 315))
 local mChatNL = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat", false))
 local mExtendFreeze = menu:AddComponent(MenuLib.Checkbox("Infinite Respawn Timer", false))
---local mRageSpecKill = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false)) -- fuck you "pizza pasta", stop spectating me
+-- local mRageSpecKill = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false)) -- fuck you "pizza pasta", stop spectating me
 local mRemovals = menu:AddComponent(MenuLib.MultiCombo("Removals", Removals, ItemFlags.FullWidth))
 
---[[ Options management ]]
+--[[ Options management ]]--
 local TempOptions = {}
 
 local function ResetTempOptions()
@@ -121,7 +120,7 @@ local function OnCreateMove(pCmd)
     local vVelocity = pLocal:EstimateAbsVelocity()
     local cmdButtons = pCmd:GetButtons()
 
-    -- Leg Jitter
+    --[[ Leg Jitter ]]--
     if mLegJitter:GetValue() == true then
         if (pCmd.forwardmove == 0) and (pCmd.sidemove == 0) and (vVelocity:Length2D() < 10) then
             if pCmd.command_number % 2 == 0 then
@@ -132,7 +131,7 @@ local function OnCreateMove(pCmd)
         end
     end
 
-    -- Fast Stop
+    --[[ Fast Stop ]]--
     if mFastStop:GetValue() == true then
         if (pLocal:IsAlive()) and (pCmd.forwardmove == 0) and (pCmd.sidemove == 0) and (vVelocity:Length2D() > 10) then
             local fsx, fsy, fsz = vVelocity:Unpack()
@@ -145,24 +144,14 @@ local function OnCreateMove(pCmd)
         end
     end
 
-
-    -- Jazz Hands (lmao)
-    if mJazzHands:GetValue() == true then
-        if pCmd.command_number % 2 == 0 then
-            client.SetConVar("cl_flipviewmodels", 1 )
-        else
-            client.SetConVar("cl_flipviewmodels", 0)
-        end
-    end
-
-    -- Retry when low hp
+    --[[ Retry when low hp ]]--
     if mRetryLowHP:GetValue() == true then
         if (pLocal:IsAlive()) and (pLocal:GetHealth() > 0 and (pLocal:GetHealth()) <= mRetryLowHPValue:GetValue()) then
             client.Command("retry", true)
         end
     end
 
-    -- Infinite Respawn
+    --[[ Infinite Respawn Timer ]]--
     if mExtendFreeze:GetValue() == true then
         if (pLocal:IsAlive() == false) and (globals.RealTime() > (LastExtenFreeze + 2)) then
             client.Command("extendfreeze", true)
@@ -170,7 +159,7 @@ local function OnCreateMove(pCmd)
         end
     end
 
-    -- Random Fakelag
+    --[[ Random Fakelag ]]--
     if mRandLag:GetValue() == true then
         flTimer = flTimer +1
         if (flTimer >= mRandLagValue:GetValue()) then
@@ -180,7 +169,7 @@ local function OnCreateMove(pCmd)
         end
     end
 
-    -- Random Ping
+    --[[ Random Ping ]]--
     if mRandPing:GetValue() == true then
         prTimer = prTimer +1
         if (prTimer >= mRandPingValue:GetValue() * 66) then
@@ -189,12 +178,12 @@ local function OnCreateMove(pCmd)
             if (prActive == 0) then
                 gui.SetValue("ping reducer", 1)
             elseif (prActive == 1) then
-                gui.SetValue("ping reducer", 0) 
+                gui.SetValue("ping reducer", 0)
             end
         end
     end
 
-    -- Anti RTD
+    --[[ Anti RTD ]]--
     if mRemovals:IsSelected("RTD Effects") then
         if CurrentRTD == "Cursed" then
             pCmd:SetForwardMove(pCmd:GetForwardMove() * (-1))
@@ -206,20 +195,59 @@ local function OnCreateMove(pCmd)
 
 
     --[[ Features that require access to the weapon ]]
-    local pWeapon = pLocal:GetPropEntity("m_hActiveWeapon")
+    local pWeapon = pLocal:GetPropEntity( "m_hActiveWeapon" )
+    local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )
+    local pWeaponDef = itemschema.GetItemDefinitionByID( pWeaponDefIndex )
+    local pWeaponName = pWeaponDef:GetName()
     if not pWeapon then return end
 
 
-    -- [[ Features that need to iterate through all players ]]
+
+    --
+    -- It turns out that LMAOBOX is not compatible with the client convar "cl_flipviewmodels". The client convar works in other cheats (such as Fedoraware) but not in LMAOBOX.
+    -- The view models DO flip, however it's only visual. The rocket still fires out of the right side of the player..
+    -- In Fedoraware, the rocket fires out of the left side of the player when the cl_viewmodels is set to 1.
+    -- So this does not work in LMAOBOX.
+    -- However, I am leaving this code here in case someone wants to see how it would have worked.
+    -- I also don't want to ask for lbox to fix this in the telegram, because the last time I did that I got banned for 2 months.
+    --
+
+
+    -- --[[ Auto weapon flip ]]--
+    if (mWFlip:GetValue() == true) then
+        if (pWeaponDefIndex == 730) or (pWeaponDefIndex == 141) or (pWeaponDefIndex == 18) or                   -- If the weapon is a rocket launcher or a grenade launcher
+        (pWeaponDefIndex == 441) or (pWeaponDefIndex == 414) or (pWeaponDefIndex == 228) or                     -- We could probably check pWeapon == TFRocketLauncher or TFGrenadeLauncher instead
+        (pWeaponDefIndex == 1104) or (pWeaponDefIndex == 127) or (pWeaponDefIndex == 308) or
+        (pWeaponDefIndex == 19) or (pWeaponDefIndex == 996) then
+            local source = pLocal:GetAbsOrigin() + pLocal:GetPropVector( "localdata", "m_vecViewOffset[0]" );   -- Get the view offset of the player
+            local destination = source + engine.GetViewAngles():Forward() * 1000;                               -- Find where the player is aiming
+            -- local trace = engine.TraceLine (source, destination, MASK_SHOT_HULL);                               -- Trace a line from the player's view offset to where they are aiming (debug)
+            local sourceRight = source + engine.GetViewAngles():Right() * 10;                                   -- Right of the player
+            local traceRight = engine.TraceLine (sourceRight, destination, MASK_SHOT_HULL);                     -- Trace a line from the right of the player to where they are aiming
+            local sourceLeft = source + engine.GetViewAngles():Right() * -10;                                   -- Left of the player
+            local traceLeft = engine.TraceLine (sourceLeft, destination, MASK_SHOT_HULL);                       -- Trace a line from the left of the player to where they are aiming
+            if (math.floor(traceLeft.fraction * 1000)) > (math.floor(traceRight.fraction * 1000)) then          -- If the left trace is closer than the right trace
+                client.SetConVar("cl_flipviewmodels", 1 )                                                       -- Set the client convar to flip the viewmodels
+            elseif  (math.floor(traceLeft.fraction * 1000)) < (math.floor(traceRight.fraction * 1000)) then     -- If the right trace is closer than the left trace
+                client.SetConVar("cl_flipviewmodels", 0 )                                                       -- Revert the client convar to not flip the viewmodels
+            end
+        end
+    end
+
+
+
+    --[[ Features that need to iterate through all players ]]
     local players = entities.FindByClass("CTFPlayer")
     for k, vPlayer in pairs(players) do
         if vPlayer:IsValid() == false then goto continue end
     local vWeapon = vPlayer:GetPropEntity("m_hActiveWeapon")
-    local vWeaponitemDefinitionIndex = vWeapon:GetPropInt( "m_iItemDefinitionIndex" )
-    local vWeaponitemDefinition = itemschema.GetItemDefinitionByID( vWeaponitemDefinitionIndex )
-    local vWeaponName = vWeaponitemDefinition:GetName()
+    if vWeapon ~= nil then
+        local vWeaponDefIndex = vWeapon:GetPropInt("m_iItemDefinitionIndex")
+        local vWeaponDef = itemschema.GetItemDefinitionByID(vWeaponDefIndex)
+        local vWeaponName = vWeaponDef:GetName()
+    end
 
-        -- Smooth on spectate
+        --[[ Smooth on spectated players ]]--
         if mLegitSpec:GetValue() == true then
             local obsMode = pLocal:GetPropInt("m_iObserverMode")
             local obsTarget = pLocal:GetPropEntity("m_hObserverTarget")
@@ -241,33 +269,32 @@ local function OnCreateMove(pCmd)
             end
         end
 
-        -- -- Spectator Killbind (Rage)
+        -- --[[ Spectator Killbind (Rage) ]]--
         -- if mRageSpecKill:GetValue() == true then
-        --     local obsRTarget = pLocal:GetPropEntity("m_hObserverTarget")
-        --     if obsRMode and obsRTarget then
-        --         if (obsRTarget:GetIndex() == pLocal:GetIndex()) then
-        --             if (obsRTarget:GetIndex() == -- if target has priority >= 1
+        --      local obsRTarget = pLocal:GetPropEntity("m_hObserverTarget")
+        --      if obsRMode and obsRTarget then
+        --          if (obsRTarget:GetIndex() == -- if target has priority >= 1. gui.getpriority() doesn't exist yet :(
         --                 client.command("explode", true) -- kill ourselves. explode so they can't see our cosmetics, because fuck whoever this guy is.
-        --         end
-        --     end
+        --          end
+        --  end
         -- end
 
         if vPlayer:IsAlive() == false then goto continue end
-        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end
+        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end --Code below this line doesn't work if you're the only player in the game.
 
         local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()
         local distance = distVector:Length()
 
         if vPlayer:GetTeamNumber() == pLocal:GetTeamNumber() then goto continue end
-        if pLocal:IsAlive() == false and (mAutoFL:GetValue() == true) then gui.SetValue("fake latency", 0) end
+        -- if pLocal:IsAlive() == false and (mAutoFL:GetValue() == true) then gui.SetValue("fake latency", 0) end
         if pLocal:IsAlive() == false then goto continue end
 
-        -- Retry when stunned
-        if (mRetryStunned:GetValue() == true) and (pLocal:IsAlive()) then
+        --[[ Retry when stunned ]]--
+        if (mRetryStunned:GetValue() == true) then
             if (pLocal:InCond(15)) then
                 client.command("retry", true) -- hopefully this doesn't spam console too fast
-            elseif (pLocal:InCond(7)) and (distance <= 200) and (vWeaponName:GetValue() == TF_WEAPON_FISTS) then -- probably works?
-                 client.command("retry", true)
+            elseif (pLocal:InCond(7)) and (distance <= 200) and (vWeaponName == "The Holiday Punch") then -- probably works?
+                client.command("retry", true)
             end
         end
 
@@ -276,13 +303,13 @@ local function OnCreateMove(pCmd)
             sneakyboy = true
         end
 
-        -- Auto Melee Switch
+        --[[ Auto Melee Switch ]]--
         if (mAutoMelee:GetValue() == true) and (distance <= mMeleeDist:GetValue()) and (pWeapon:IsMeleeWeapon() == false) and (sneakyboy == false) then
             print(distance)
             client.Command("slot3", true) -- We don't have access to pCmd.weaponselect :(
         end
-        
-        -- Auto Fake Latency
+
+        --[[ Auto Fake Latency ]]--
         if (mAutoFL:GetValue() == true) and (pLocal:IsAlive() == true) and (distance <= mAutoFLDist:GetValue()) and (pWeapon:IsMeleeWeapon() == true) and (sneakyboy == false) then
             gui.SetValue("fake latency", 1)
             return
@@ -290,7 +317,7 @@ local function OnCreateMove(pCmd)
             gui.SetValue("fake latency", 0)
         end
 
-        -- Auto C2
+        --[[ Auto C2 ]]--
         if mCallouts:IsSelected("Battle Cry Melee") and (pLocal:IsAlive()) and (pWeapon:IsMeleeWeapon() == true) and (sneakyboy == false) then
             c2Timer = c2Timer + 1 -- trace every 0.5 seconds
             c2Timer2 = c2Timer2 + 1 -- attempt C2 every 2 seconds
@@ -315,7 +342,8 @@ local function OnStringCmd(stringCmd)
     local cmd = stringCmd:Get()
     local blockCmd = false
 
-    -- Allow \n in chat (This method is scuffed, but it works)
+    --[[ Allow \n in chat ]]--
+    -- This method is scuffed, but it works
     if mChatNL:GetValue() == true then
         cmd = cmd:gsub("\\n", "\n")
         if cmd:find("say_team", 1, true) == 1 then
@@ -334,6 +362,7 @@ local function OnStringCmd(stringCmd)
     end
 end
 
+--[[ Code needed to run 66 times a second ]]--
 local function OnUserMessage(userMsg)
     local blockMessage = false
 
@@ -378,14 +407,18 @@ local function OnUnload()
     client.Command('play "ui/buttonclickrelease"', true)
 end
 
+
+--[[ Unregister previous callbacks ]]--
 callbacks.Unregister("CreateMove", "MCT_CreateMove")
 callbacks.Unregister("SendStringCmd", "MCT_StringCmd")
 callbacks.Unregister("DispatchUserMessage", "MCT_UserMessage")
 callbacks.Unregister("Unload", "MCT_Unload")
 
+--[[ Register callbacks ]]--
 callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)
 callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)
 callbacks.Register("DispatchUserMessage", "MCT_UserMessage", OnUserMessage)
 callbacks.Register("Unload", "MCT_Unload", OnUnload)
 
+--[[ Play sound when loaded ]]--
 client.Command('play "ui/buttonclick"', true)
