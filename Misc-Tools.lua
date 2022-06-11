@@ -99,7 +99,7 @@ local function SetOptionTemp(option, value)                        -- Runs "SetO
     if guiValue ~= value then                                      -- Check if "guiValue" is different from the "SetOptionTemp"'s setting
         gui.SetValue(option, value)                                -- Set the cheat to the given setting
         TempOptions[option] = {                                    -- Create a new entry in "TempOptions" for the given cheat
-            Value = guiValue,                                      -- Set the entry's value to the current setting of the cheat
+            Value   = guiValue,                                    -- Set the entry's value to the current setting of the cheat
             WasUsed = true    }                                    -- Set the entry's "WasUsed" to true
     end
 
@@ -123,7 +123,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     ResetTempOptions()                               -- Immediately reset "TempOptions"
     local pLocal = entities.GetLocalPlayer()         -- Immediately set "pLocal" to the local player (entities.GetLocalPlayer)
     if not pLocal then return end                    -- Immediately check if the local player exists. If it doesn't, return.
-    local vVelocity = pLocal:EstimateAbsVelocity()   -- Immediately set "vVelocity" to the local player's absolute velocity (this is used for any code that needs to know the local player's velocity)
+    local vVelocity  = pLocal:EstimateAbsVelocity()  -- Immediately set "vVelocity" to the local player's absolute velocity (this is used for any code that needs to know the local player's velocity)
     local cmdButtons = pCmd:GetButtons()             -- Immediately set "cmdButtons" to the local player's buttons (this is used for any code that needs to know what buttons we are pressing)
 
 
@@ -261,7 +261,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
         --[[ Legit on spectated players ]]-- (To prevent spectating players from seeing us acting suspiciously)
         if mLegitSpec:GetValue() == true then                                                        -- If Smooth on spectated players is enabled
-            local obsMode   = pLocal:GetPropInt("m_iObserverMode")                                    -- Set "obsMode" to the player's observer mode 
+            local obsMode   = pLocal:GetPropInt("m_iObserverMode")                                   -- Set "obsMode" to the player's observer mode 
             local obsTarget = pLocal:GetPropEntity("m_hObserverTarget")                              -- Set "obsTarget" to the player's observer target
             if obsMode and obsTarget then                                                            -- If "obsMode" and "obsTarget" are set
                 if (obsMode == ObserverMode.ThirdPerson) and (mLegitSpecFP:GetValue() == true) then  -- If the player is spectating in third person and Firstperson Only Toggle is enabled
