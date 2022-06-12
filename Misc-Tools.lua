@@ -210,10 +210,6 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
     --[[ Features that require access to the weapon ]]--
-
-    print(itemschema.GetItemDefinitionByID( entities.GetLocalPlayer():GetPropEntity("m_hActiveWeapon"):GetPropInt("m_iItemDefinitionIndex") ))
-
-
     local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
     local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )       -- Set "pWeaponDefIndex" to the "pWeapon"'s item definition index
     local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
@@ -318,7 +314,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         -- end
 
         if vPlayer:IsAlive() == false then goto continue end
-        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            --Code below this line doesn't work if you're the only player in the game.
+        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            -- Code below this line doesn't work if you're the only player in the game.
 
         local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
         local distance   = distVector:Length()                                       -- Set "distance" to the length of "distVector"
