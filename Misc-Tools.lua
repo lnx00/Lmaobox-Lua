@@ -210,11 +210,18 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
     --[[ Features that require access to the weapon ]]--
+
+    print(itemschema.GetItemDefinitionByID( entities.GetLocalPlayer():GetPropEntity("m_hActiveWeapon"):GetPropInt("m_iItemDefinitionIndex") ))
+
+
     local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
     local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )       -- Set "pWeaponDefIndex" to the "pWeapon"'s item definition index
     local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
     local pWeaponName     = pWeaponDef:GetName()                                 -- Set "pWeaponName" to the local "pWeapon"'s actual name
     if not pWeapon then return end                                               -- If "pWeapon" is not set, break
+    if (pWeapon == "CTFRocketLauncher") or (pWeaon == "CTFCannon") then        -- If the local player's active weapon is a projectile weapon (this doesn't work for some reason????)
+        pUsingProjectileWeapon  = true                                               -- Set "pUsingProjectileWeapon" to true
+    else pUsingProjectileWeapon = false end                                          -- Set "pUsingProjectileWeapon" to false
 
 
 
@@ -226,11 +233,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     -- I also don't want to ask for lbox to fix this in the telegram, because the last time I did that I got banned for 2 months.
     --[[ Auto weapon flip ]]-- (Automatically flips your rocket launcher to the left if it would travel farther)
     if (mWFlip:GetValue() == true) then                                                                             -- If Auto weapon flip is enabled
-        if (pWeaponDefIndex == 730) or (pWeaponDefIndex == 141) or (pWeaponDefIndex == 18) 
-                                    or (pWeaponDefIndex == 441) or (pWeaponDefIndex == 414) 
-                                    or (pWeaponDefIndex == 228) or (pWeaponDefIndex == 1104) 
-                                    or (pWeaponDefIndex == 127) or (pWeaponDefIndex == 308) 
-                                    or (pWeaponDefIndex == 19)  or (pWeaponDefIndex == 996) then                    -- We could probably check "(pWeapon == TFRocketLauncher) or (pWeapon == TFGrenadeLauncher)" but I'm not sure if that would work
+        if pUsingProjectileWeapon == true then                                                                            -- If the local player is using a projectile weapon
             local source      = pLocal:GetAbsOrigin() + pLocal:GetPropVector( "localdata", "m_vecViewOffset[0]" );  -- Set "source" to the local player's view offset
             local destination = source + engine.GetViewAngles():Forward() * 1000;                                   -- Find where the player is aiming
             local trace       = engine.TraceLine (source, destination, MASK_SHOT_HULL);                             -- Trace a line from the player's view offset to where they are aiming (for debugging)
@@ -255,8 +258,8 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     local vWeapon = vPlayer:GetPropEntity("m_hActiveWeapon")                       -- Set "vWeapon" to the player's active weapon
     if vWeapon ~= nil then                                                         -- If "vWeapon" is not nil
         local vWeaponDefIndex = vWeapon:GetPropInt("m_iItemDefinitionIndex")       -- Set "vWeaponDefIndex" to the "vWeapon"'s item definition index
-        local vWeaponDef      = itemschema.GetItemDefinitionByID(vWeaponDefIndex)  -- Set "vWeaponDef" to the local "vWeapon"'s item definition
-        local vWeaponName     = vWeaponDef:GetName()                               -- Set "vWeaponName" to the local "vWeapon"'s actual name
+        --local vWeaponDef      = itemschema.GetItemDefinitionByID(vWeaponDefIndex)  -- Set "vWeaponDef" to the local "vWeapon"'s item definition (doesn't work for some reason)
+        --local vWeaponName     = vWeaponDef:GetName()                               -- Set "vWeaponName" to the local "vWeapon"'s actual name (doesn't work for some reason)
     end
 
         --[[ Legit on spectated players ]]-- (To prevent spectating players from seeing us acting suspiciously)
@@ -267,18 +270,41 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                 if (obsMode == ObserverMode.ThirdPerson) and (mLegitSpecFP:GetValue() == true) then  -- If the player is spectating in third person and Firstperson Only Toggle is enabled
                     return                                                                           -- Stop the code from running
                 elseif (obsTarget:GetIndex() == pLocal:GetIndex()) then                              -- If the observer's spectate target is the local player
-                    SetOptionTemp("aim method", "assistance")
-                    SetOptionTemp("auto backstab", "legit")
-                    SetOptionTemp("auto sapper", "legit")
-                    SetOptionTemp("melee aimbot", "legit")
-                    SetOptionTemp("auto detonate sticky", "legit")
-                    SetOptionTemp("auto airblast", "legit")
-                    SetOptionTemp("sniper: shoot through teammates", "off")                          -- Might not work
-                    SetOptionTemp("fake latency", "off")
-                    SetOptionTemp("fake lag", "off")
-                    SetOptionTemp("ping reducer", "off")                                             -- Might not work with "Smart Fake Latency"
+                    if (pUsingProjectileWeapon == true) and (gui.GetValue("aim method") == "silent") then -- if we're using a projectile weapon, and aim method is set to silent, setOptionTemp aim fov to 10
+                        SetOptionTemp("aim fov", 10)
+                    else
+                        SetOptionTemp("aim method", "assistance")                                   -- Otherwise, if we're not using a projectile weapon, set aim method to assistance
+                    end                        
+                    if (gui.GetValue("auto backstab") ~= "off") then
+                        SetOptionTemp("auto backstab", "legit")                                      -- If autobackstab is enabled, set it to legit
+                    end
+                    if (gui.GetValue("auto sapper") ~= "off") then
+                        SetOptionTemp("auto sapper", "legit")                                        -- If autosapper is enabled, set it to legit
+                    end
+                    if (gui.GetValue("melee aimbot") ~= "off") then                                  -- If melee aimbot is enabled, set it to legit
+                        SetOptionTemp("melee aimbot", "legit")  
+                    end
+                    if (gui.GetValue("auto detonate sticky") ~= "off") then                          -- If autodetonate sticky is enabled, set it to legit
+                        SetOptionTemp("auto detonate sticky", "legit")
+                    end
+                    if (gui.GetValue("auto airblast") ~= "off") then                                 -- If auto airblast is enabled, set it to legit
+                        SetOptionTemp("auto airblast", "legit")
+                    end
+                    -- if (gui.GetValue("sniper: shoot through teammates") ~= "off") then            -- I don't know the correct name for this
+                    --     SetOptionTemp("sniper: shoot through teammates", "off")
+                    -- end
+                    -- if (gui.GetValue("fake latency") ~= "0") then                                 -- for some reason this doesn't work
+                    --     SetOptionTemp("fake latency", "0")
+                    -- end
+                    -- if (gui.GetValue("fake lag") ~= "0") then
+                    --     SetOptionTemp("fake lag", "0")
+                    -- end
+                    -- if (gui.GetValue("ping reducer") ~= "0") then
+                    --     SetOptionTemp("ping reducer", "0")
+                    -- end
                 end
             end
+
         end
 
         --[[ Spectator Killbind (Rage) ]]-- (I hate it when a random spy on my team decides to alway spectate me when I'm dead. I just to play the damn game, stop being suspicious of me.)
@@ -292,7 +318,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         -- end
 
         if vPlayer:IsAlive() == false then goto continue end
-        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            -- Code below this line doesn't work if you're the only player in the game.
+        if vPlayer:GetIndex() == pLocal:GetIndex() then goto continue end            --Code below this line doesn't work if you're the only player in the game.
 
         local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
         local distance   = distVector:Length()                                       -- Set "distance" to the length of "distVector"
