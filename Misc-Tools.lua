@@ -60,6 +60,7 @@ local mCallouts         = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu W
 local mLegJitter        = menu:AddComponent(MenuLib.Checkbox("Leg Jitter",             false))                          -- Leg Jitter
 local mFastStop         = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)",      false))                          -- FastStop (Doesn't work yet)
 local mWFlip            = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       false))                          -- Auto Weapon Flip (Doesn't work yet)
+local mRocketLines      = menu:AddComponent(MenuLib.Checkbox("Rocket Lines",           false))                          -- Rocket Lines
     menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
     client.SetConVar("cl_wpn_sway_interp",              0)             -- Set cl_wpn_sway_interp to 0
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)             -- Set cl_jiggle_bone_framerate_cutoff to 0
@@ -73,7 +74,9 @@ local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only"
 local mAutoMelee        = menu:AddComponent(MenuLib.Checkbox("Auto Melee Switch",      false))                          -- Auto Melee Switch
 local mMeleeDist        = menu:AddComponent(MenuLib.Slider("Melee Switch Distance",    100, 700, 200))                  -- Auto Melee Switch Distance
 local mAutoFL           = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency",      false))                          -- Auto Fake Latency
-local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("Auto Latency Distance",    100, 700, 350))                  -- Auto Fake Latency Distance
+local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("AFL Activation Distance",    100, 700, 530))                  -- Auto Fake Latency Distance (530 is based on two players walking towards each other)
+local mAutoFLFar        = menu:AddComponent(MenuLib.Slider("AFL Far Value",         0, 1000, 0))                      -- What value to use when not in range (to keep ping consistant and not jumping around)
+local mAutoFLNear       = menu:AddComponent(MenuLib.Slider("AFL Close Value",        0, 1000, 300))                    -- Auto Fake Latency Near Value
 local mRandPing         = menu:AddComponent(MenuLib.Checkbox("Random Ping",            false))                          -- Random Ping
 local mRandPingValue    = menu:AddComponent(MenuLib.Slider("Ping Randomness",          1, 15, 8))                       -- Random Ping Value
 local mRandLag          = menu:AddComponent(MenuLib.Checkbox("Random Fakelag",         false))                          -- Random Fakelag
@@ -113,6 +116,37 @@ local function CheckTempOptions()                                  -- When Check
         if not v.WasUsed then                                      -- Check if the entry's "WasUsed" is false.
             gui.SetValue(k, v.Value)                               -- Set the cheat to the entry's value (the value it was set to before) and
             TempOptions[k] = nil                                   -- Remove the entry from "TempOptions" (so it doesn't get checked again)
+        end
+    end
+end
+
+
+
+local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
+--[[ Code called every frame ]]--
+local function doDraw() 
+    if engine.Con_IsVisible() or engine.IsGameUIVisible() then
+        return
+    end
+
+
+
+    --[[ Rocket Lines ]]-- (Shows trajectory of rockets (kinda bugged but works))
+    if mRocketLines:GetValue() then -- If "Rocket Lines" is enabled
+        local rockets = entities.FindByClass("CTFProjectile_Rocket") -- Find all rockets
+        for i, rocket in pairs(rockets) do                          -- Loop through all rockets
+
+            local rocketPos = rocket:GetAbsOrigin()               -- Set "rocketPos" to the rocket's position
+            local rocketScreenPos = client.WorldToScreen(rocketPos) -- Set "rocketScreenPos" to the x/z coordinates of the rocket's position based on the player's screen
+            local rocketDest = vector.Add(rocketPos, rocket:EstimateAbsVelocity()) -- Set "rocketDest" to the rocket's estimated direction based on the rocket's estimated velocity (this should probably be replaced with the rocket's direction)
+            local rocketTrace = engine.TraceLine(rocketPos, rocketDest, MASK_SHOT_HULL) -- Trace a line from the rocket's position to the rocket's estimated direction until it hits something
+            local hitPosScreen = client.WorldToScreen(rocketTrace.endpos) -- Set "hitPosScreen" to the x/z coordinates of the trace's hit position based on the player's screen
+
+            draw.Color(255, 0, 0, 255) -- Set the color to red
+            -- if type(exp) == "table" then printLuaTable(exp) else print( table.concat( {exp}, '\n' ) )
+            draw.Line(rocketScreenPos[1], rocketScreenPos[2], hitPosScreen[1], hitPosScreen[2]) --Draw a line from the rocket to the trace's hit position
+            draw.Line(rocketScreenPos[1] + 1, rocketScreenPos[2] + 1 , hitPosScreen[1] + 1, hitPosScreen[2]) --Used to make lines thicker (could probably be removed)
+            draw.Line(rocketScreenPos[1] - 1, rocketScreenPos[2] - 1 , hitPosScreen[1] - 1, hitPosScreen[2])
         end
     end
 end
@@ -210,11 +244,11 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
     --[[ Features that require access to the weapon ]]--
-    local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
-    local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )       -- Set "pWeaponDefIndex" to the "pWeapon"'s item definition index
-    local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
-    local pWeaponName     = pWeaponDef:GetName()                                 -- Set "pWeaponName" to the local "pWeapon"'s actual name
-    if not pWeapon then return end                                               -- If "pWeapon" is not set, break
+        local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
+        local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )       -- Set "pWeaponDefIndex" to the "pWeapon"'s item definition index
+        local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
+        local pWeaponName     = pWeaponDef:GetName()                                 -- Set "pWeaponName" to the local "pWeapon"'s actual name
+        if not pWeapon then return end                                               -- If "pWeapon" is not set, break
     if (pWeapon == "CTFRocketLauncher") or (pWeaon == "CTFCannon") then        -- If the local player's active weapon is a projectile weapon (this doesn't work for some reason????)
         pUsingProjectileWeapon  = true                                               -- Set "pUsingProjectileWeapon" to true
     else pUsingProjectileWeapon = false end                                          -- Set "pUsingProjectileWeapon" to false
@@ -333,30 +367,52 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         end
 
         local sneakyboy = false                       -- Create a new variable for if we're invisible or not, set it to false
-        if pLocal:InCond(4) or pLocal:InCond(3) 
-                            or pLocal:InCond(2) 
+        if pLocal:InCond(4) or pLocal:InCond(2) 
                             or pLocal:InCond(13) 
                             or pLocal:InCond(9) then  -- If we are in a condition that makes us invisible
             sneakyboy = true                          -- Set "sneakyboy" to true
         end
+        -- local disguisedboy = false
+        -- if pLocal:InCond(47) or pLocal:InCond(3)
+        --                     or pLocal:InCond(2) then
+        --     disguisedboy = true
+        -- end
 
         --[[ Auto Melee Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
         if (mAutoMelee:GetValue() == true) and (distance <= mMeleeDist:GetValue())  -- If Auto Melee is enabled, and we are within the melee distance
                                            and (pWeapon:IsMeleeWeapon() == false)   -- and we are not using a melee weapon
                                            and (sneakyboy == false) then            -- and we are not invisible
-            --print(distance)                                                       -- Print the distance to the console (for debugging)
+            client.ChatPrintf(distance)                                                       -- Print the distance to the console (for debugging)
             client.Command("slot3", true)                                           -- Execute the "slot3" command (We don't have access to pCmd.weaponselect :( )
         end
 
         --[[ Auto Fake Latency ]]-- (Automatically enables fake latency depending on certain conditions)
-        if (mAutoFL:GetValue() == true) and (distance <= mAutoFLDist:GetValue())  -- If Auto Fake Latency is enabled, and we are within "mAutoFLDist" (set in the menu) of the enemy
-                                        and (pWeapon:IsMeleeWeapon() == true)     -- and we are using a melee weapon
-                                        and (sneakyboy == false) then             -- and we are not invisible
-            gui.SetValue("fake latency", 1)                                       -- Set the fake latency to 1
-            return -- Does this break AutoC2?
-        elseif (mAutoFL:GetValue() == true) then                                  -- Otherwise, if Auto Fake Latency is enabled but no other conditions are met
-            gui.SetValue("fake latency", 0)                                       -- Set the fake latency to 0
+        if (mAutoFL:GetValue() == true) and (pWeapon:IsMeleeWeapon() == true)            -- If Auto Fake Latency is enabled, and we are using a melee weapon, and we are not invisible
+                                        and (sneakyboy == false) then                    
+            if (distance <= mAutoFLDist:GetValue()) then                                 -- Check if we are within "mAutoFLDist" (set in the menu) of the enemy
+                if (gui.GetValue("fake latency") ~= 1) then                              -- If "fake latency" is not on, turn it on
+                    gui.SetValue("fake latency", 1)
+                end
+                if (gui.GetValue ("fake latency value") ~= mAutoFLNear:GetValue()) then  -- if "fake latency value" is not "mAutoFLNear" (set in the menu), set it to "mAutoFLNear"
+                    gui.SetValue("fake latency value", mAutoFLNear:GetValue())
+                end
+                return
+            elseif (distance > mAutoFLDist:GetValue()) then                              -- If are away from the enemy, check if "mAutoFLFar" is set to 0.
+                if (mAutoFLFar:GetValue() == 0) then                                     -- If "mAutoFLFar" is set to 0, turn off fake latency.
+                    if (gui.GetValue("fake latency") ~= 0) then
+                        gui.SetValue("fake latency", 0)
+                    end
+                elseif (mAutoFLFar:GetValue() >= 1) then                                 -- If "mAutoFLFar" is set to 1 or more, set "fake latency value" to "mAutoFLFar" and turn "fake latency" on (if it's not already on)
+                    if (gui.GetValue("fake latency") ~= 1) then
+                        gui.SetValue("fake latency", 1)
+                    end
+                    if (gui.GetValue ("fake latency value") ~= mAutoFLFar:GetValue()) then
+                        gui.SetValue("fake latency value", mAutoFLFar:GetValue())
+                    end
+                end
+            end
         end
+
 
         --[[ Auto C2 ]]-- (Automatically use "Battle Cry" when looking at an enemy with melee weapon (for special voicelines))
         if mCallouts:IsSelected("Battle Cry Melee") and (pWeapon:IsMeleeWeapon() == true)                                 -- If we are using the Battle Cry Melee callout, and we are using a melee weapon
@@ -460,12 +516,14 @@ callbacks.Unregister("CreateMove", "MCT_CreateMove")            -- Unregister th
 callbacks.Unregister("SendStringCmd", "MCT_StringCmd")          -- Unregister the "SendStringCmd" callback
 callbacks.Unregister("DispatchUserMessage", "MCT_UserMessage")  -- Unregister the "DispatchUserMessage" callback
 callbacks.Unregister("Unload", "MCT_Unload")                    -- Unregister the "Unload" callback
+callbacks.Unregister("Draw", "MCT_Draw")                        -- Unregister the "Draw" callback
 
 --[[ Register callbacks ]]--
 callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)             -- Register the "CreateMove" callback
 callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)            -- Register the "SendStringCmd" callback
 callbacks.Register("DispatchUserMessage", "MCT_UserMessage", OnUserMessage)  -- Register the "DispatchUserMessage" callback
 callbacks.Register("Unload", "MCT_Unload", OnUnload)                         -- Register the "Unload" callback
+callbacks.Register("Draw", "MCT_Draw", doDraw)                               -- Register the "Draw" callback
 
 --[[ Play sound when loaded ]]--
 client.Command('play "ui/buttonclick"', true) -- Play the "buttonclick" sound when the script is loaded
