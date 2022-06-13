@@ -48,6 +48,7 @@ local prTimer = 0          -- Timer for Random Ping
 local flTimer = 0          -- Timer for Fake Latency
 local c2Timer = 0          -- Timer for Battle Cry Melee raytracing
 local c2Timer2 = 0         -- Timer for ^ to prevent spamming
+local mfTimer = 0          -- Timer for Medic Finder
 
 
 --[[ Menu ]]--
@@ -85,6 +86,8 @@ local mRandLagMin       = menu:AddComponent(MenuLib.Slider("Fakelag Min",       
 local mRandLagMax       = menu:AddComponent(MenuLib.Slider("Fakelag Max",              2, 315, 315))                    -- Random Fakelag Maximum Value
 local mChatNL           = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat",      false))                          -- Allow \\n in chat
 local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("Infinite Respawn Timer", false))                          -- Infinite Respawn Timer
+local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           false))                          -- Medic Finder
+-- local mUberWarning      = menu:AddComponent(MenuLib.Checkbox("Uber Warning",     false))                          -- Medic Uber Warning (currently no way to check)
 -- local mRageSpecKill     = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false))                         -- fuck you "pizza pasta", stop spectating me
 local mRemovals         = menu:AddComponent(MenuLib.MultiCombo("Removals",             Removals, ItemFlags.FullWidth))  -- Remove RTD and HUD Texts
 
@@ -116,37 +119,6 @@ local function CheckTempOptions()                                  -- When Check
         if not v.WasUsed then                                      -- Check if the entry's "WasUsed" is false.
             gui.SetValue(k, v.Value)                               -- Set the cheat to the entry's value (the value it was set to before) and
             TempOptions[k] = nil                                   -- Remove the entry from "TempOptions" (so it doesn't get checked again)
-        end
-    end
-end
-
-
-
-local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
---[[ Code called every frame ]]--
-local function doDraw() 
-    if engine.Con_IsVisible() or engine.IsGameUIVisible() then
-        return
-    end
-
-
-
-    --[[ Rocket Lines ]]-- (Shows trajectory of rockets (kinda bugged but works))
-    if mRocketLines:GetValue() then -- If "Rocket Lines" is enabled
-        local rockets = entities.FindByClass("CTFProjectile_Rocket") -- Find all rockets
-        for i, rocket in pairs(rockets) do                          -- Loop through all rockets
-
-            local rocketPos = rocket:GetAbsOrigin()               -- Set "rocketPos" to the rocket's position
-            local rocketScreenPos = client.WorldToScreen(rocketPos) -- Set "rocketScreenPos" to the x/z coordinates of the rocket's position based on the player's screen
-            local rocketDest = vector.Add(rocketPos, rocket:EstimateAbsVelocity()) -- Set "rocketDest" to the rocket's estimated direction based on the rocket's estimated velocity (this should probably be replaced with the rocket's direction)
-            local rocketTrace = engine.TraceLine(rocketPos, rocketDest, MASK_SHOT_HULL) -- Trace a line from the rocket's position to the rocket's estimated direction until it hits something
-            local hitPosScreen = client.WorldToScreen(rocketTrace.endpos) -- Set "hitPosScreen" to the x/z coordinates of the trace's hit position based on the player's screen
-
-            draw.Color(255, 0, 0, 255) -- Set the color to red
-            -- if type(exp) == "table" then printLuaTable(exp) else print( table.concat( {exp}, '\n' ) )
-            draw.Line(rocketScreenPos[1], rocketScreenPos[2], hitPosScreen[1], hitPosScreen[2]) --Draw a line from the rocket to the trace's hit position
-            draw.Line(rocketScreenPos[1] + 1, rocketScreenPos[2] + 1 , hitPosScreen[1] + 1, hitPosScreen[2]) --Used to make lines thicker (could probably be removed)
-            draw.Line(rocketScreenPos[1] - 1, rocketScreenPos[2] - 1 , hitPosScreen[1] - 1, hitPosScreen[2])
         end
     end
 end
@@ -292,6 +264,13 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         --local vWeaponName     = vWeaponDef:GetName()                               -- Set "vWeaponName" to the local "vWeapon"'s actual name (doesn't work for some reason)
     end
 
+    local sneakyboy = false                       -- Create a new variable for if we're invisible or not, set it to false
+    if pLocal:InCond(4) or pLocal:InCond(2) 
+                        or pLocal:InCond(13) 
+                        or pLocal:InCond(9) then  -- If we are in a condition that makes us invisible
+        sneakyboy = true                          -- Set "sneakyboy" to true
+    end
+
         --[[ Legit on spectated players ]]-- (To prevent spectating players from seeing us acting suspiciously)
         if mLegitSpec:GetValue() == true then                                                        -- If Smooth on spectated players is enabled
             local obsMode   = pLocal:GetPropInt("m_iObserverMode")                                   -- Set "obsMode" to the player's observer mode 
@@ -352,9 +331,11 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
         local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
         local distance   = distVector:Length()                                       -- Set "distance" to the length of "distVector"
+        if pLocal:IsAlive() == false then goto continue end                          -- If we are not alive, skip the rest of this code
 
         if vPlayer:GetTeamNumber() == pLocal:GetTeamNumber() then goto continue end  -- If we are on the same team as the player we are iterating through, skip the rest of this code
-        if pLocal:IsAlive() == false then goto continue end                          -- If we are not alive, skip the rest of this code
+
+
 
         --[[ Retry when stunned ]]-- (To prevent us from getting tauntkilled)
         if (mRetryStunned:GetValue() == true) then                                   -- If Retry when stunned is enabled
@@ -366,12 +347,6 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
             end
         end
 
-        local sneakyboy = false                       -- Create a new variable for if we're invisible or not, set it to false
-        if pLocal:InCond(4) or pLocal:InCond(2) 
-                            or pLocal:InCond(13) 
-                            or pLocal:InCond(9) then  -- If we are in a condition that makes us invisible
-            sneakyboy = true                          -- Set "sneakyboy" to true
-        end
         -- local disguisedboy = false
         -- if pLocal:InCond(47) or pLocal:InCond(3)
         --                     or pLocal:InCond(2) then
@@ -436,6 +411,136 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     end
     CheckTempOptions()
 end
+
+
+local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
+--[[ Code called every frame ]]--
+local function doDraw() 
+    if engine.Con_IsVisible() or engine.IsGameUIVisible() then
+        return
+    end
+
+
+
+    --[[ Rocket Lines ]]-- (Shows trajectory of rockets (kinda bugged but works))
+    if mRocketLines:GetValue() then -- If "Rocket Lines" is enabled
+        local rockets = entities.FindByClass("CTFProjectile_Rocket") -- Find all rockets
+        for i, rocket in pairs(rockets) do                          -- Loop through all rockets
+
+            local rocketPos = rocket:GetAbsOrigin()               -- Set "rocketPos" to the rocket's position
+            local rocketScreenPos = client.WorldToScreen(rocketPos) -- Set "rocketScreenPos" to the x/z coordinates of the rocket's position based on the player's screen
+            local rocketDest = vector.Add(rocketPos, rocket:EstimateAbsVelocity()) -- Set "rocketDest" to the rocket's estimated direction based on the rocket's estimated velocity (this should probably be replaced with the rocket's direction)
+            local rocketTrace = engine.TraceLine(rocketPos, rocketDest, MASK_SHOT_HULL) -- Trace a line from the rocket's position to the rocket's estimated direction until it hits something
+            local hitPosScreen = client.WorldToScreen(rocketTrace.endpos) -- Set "hitPosScreen" to the x/z coordinates of the trace's hit position based on the player's screen
+
+            draw.Color(255, 0, 0, 255) -- Set the color to red
+            -- if type(exp) == "table" then printLuaTable(exp) else print( table.concat( {exp}, '\n' ) )
+            draw.Line(rocketScreenPos[1], rocketScreenPos[2], hitPosScreen[1], hitPosScreen[2]) --Draw a line from the rocket to the trace's hit position
+            draw.Line(rocketScreenPos[1] + 1, rocketScreenPos[2] + 1 , hitPosScreen[1] + 1, hitPosScreen[2]) --Used to make lines thicker (could probably be removed)
+            draw.Line(rocketScreenPos[1] - 1, rocketScreenPos[2] - 1 , hitPosScreen[1] - 1, hitPosScreen[2])
+        end
+    end
+
+    
+    local players = entities.FindByClass("CTFPlayer")
+
+    --[[ MEdic Finder ]]-- (Draws a cross on over friendly medics when pressing E (my default keybind for +helpme))
+    if mMedicFinder:GetValue() == true then
+        
+        if (mfTimer == 0) then -- debug (can be removed?)
+        end
+        if input.IsButtonDown( KEY_E ) then                                                                                                    -- If the E key is pressed
+            mfTimer = 1                                                                                                                        -- Activate Medic Finder
+        end
+        if (mfTimer >= 1) and (mfTimer < 12 * 66) then                                                                                         -- If the timer is >1/<12 seconds, show the cross
+            mfTimer = mfTimer + 1
+            if (mfTimer >= 3) then -- debug (can be removed?)
+            end
+            for i, p in ipairs(players) do
+                if p:IsAlive() and p:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then                                         -- If the player is alive and on the same team as the local player
+                    local pWeapon = p:GetPropEntity("m_hActiveWeapon")                                                                         -- Set "pWeapon" to the player's active weapon
+                    if pWeapon ~= nil then                                                                                                     -- Validate "pWeapon"
+                        pWeaponIs = pWeapon:GetClass()                                                                                         -- Set "pWeaponIs" to the player's active weapon's class
+                        if p:IsAlive() and not p:IsDormant() and (p:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber()) then         -- If the player is alive and not dormant and on the same team as the local player
+                            if (pWeaponIs == "CTFCrossbow")                                                                                    -- Check if the player's active weapon is a crossbow, bonesaw, syringe, or medigun. If so, they're a medic
+                                    or (pWeaponIs == "CTFBonesaw") 
+                                    or (pWeaponIs == "CTFSyringeGun") 
+                                    or (pWeaponIs == "CWeaponMedigun") then                                                                    -- For some reason this doesn't work with decorated weapons
+                                
+                                local pPos = p:GetAbsOrigin() -- + (p:GetAbsOrigin() + p:GetPropVector("localdata", "m_vecViewOffset[0]") * 1  -- Set "pPos" to the medic's position
+                                local pScreenPos2 = client.WorldToScreen(pPos)                                                                 -- Find the co-ords of the medic's absolute position based on the player's screen
+                                local pScreenPos = client.WorldToScreen(pPos + p:GetPropVector("localdata", "m_vecViewOffset[0]"))             -- Find the co-ords of the medic's view offset
+                                if (pScreenPos2 ~= nil) and (pScreenPos ~= nil) then                                                           -- Validate the co-ords
+                                    local pScreenDistance = (pScreenPos2[2] - pScreenPos[2]) * 0.01                                            -- Find the distance between the medic's absolute position and view offset
+                                    if pSCreenDistance == 0 then                                                                               -- If the distance is 0, set it to 1
+                                        pScreenDistance = 1
+                                    end
+                                    -- Change the color based on distance from entities.GetLocalPlayer()
+                                    distance = vector.Distance( pPos, entities.GetLocalPlayer():GetAbsOrigin() )                               -- Find the distance between the medic and the local player
+                                    distanceMax = 1000                                                                                         -- Maximum range at which alpha is 100%/255
+                                    distanceMin = 200                                                                                          -- Minimum range at which alpha is 0%/0
+                                    distanceMaxColor = 255                                                                                     --Ranges for alpha
+                                    distanceMinColor = 0                                                                                       -- Set this to ~100 to make the cross always visible despite the distance
+                                    distanceColor = math.floor( (distanceMaxColor) * (distance - distanceMin) / (distanceMax - distanceMin) )  -- Calculate the alpha based on the distance
+                                    if distanceColor < 0 then                                                                                  -- If the alpha is less than 0, set it to 0
+                                        distanceColor = 0
+                                    elseif distanceColor > 255 then                                                                            -- If the alpha is greater than 255, set it to 255
+                                        distanceColor = 255
+                                    end
+                                    draw.Color(255, 0, 0, distanceColor)                                                                       -- Set the color to red with the calculated alpha
+                                    
+                                    local def1 = 15                                                                                            -- vvvvMath shit for the crossvvvv
+                                    local def2 = 40
+                                    local def3 = 50
+                                    local def4 = 70
+                                    local def5 = 110
+                                    def1 = math.floor(def1 * pScreenDistance)
+                                    def2 = math.floor(def2 * pScreenDistance)
+                                    def3 = math.floor(def3 * pScreenDistance)
+                                    def4 = math.floor(def4 * pScreenDistance)
+                                    def5 = math.floor(def5 * pScreenDistance)
+                                    draw.Line(pScreenPos2[1] + def1, pScreenPos2[2], pScreenPos2[1] - def1, pScreenPos2[2])                    -- vvv Draw the cross vvv
+                                    draw.Line(pScreenPos2[1] + def1, pScreenPos2[2], pScreenPos2[1] + def1, pScreenPos2[2] - def2)
+                                    draw.Line(pScreenPos2[1] + def1, pScreenPos2[2] - def2, pScreenPos2[1] + def3, pScreenPos2[2] - def2)
+                                    draw.Line(pScreenPos2[1] + def3, pScreenPos2[2] - def2, pScreenPos2[1] + def3, pScreenPos2[2] - def4)
+                                    draw.Line(pScreenPos2[1] + def3, pScreenPos2[2] - def4, pScreenPos2[1] + def1, pScreenPos2[2] - def4)
+                                    draw.Line(pScreenPos2[1] + def1, pScreenPos2[2] - def4, pScreenPos2[1] + def1, pScreenPos2[2] - def5)
+                                    draw.Line(pScreenPos2[1] + def1, pScreenPos2[2] - def5, pScreenPos2[1] - def1, pScreenPos2[2] - def5)
+                                    draw.Line(pScreenPos2[1] - def1, pScreenPos2[2] - def5, pScreenPos2[1] - def1, pScreenPos2[2] - def4)
+                                    draw.Line(pScreenPos2[1] - def1, pScreenPos2[2] - def4, pScreenPos2[1] - def3, pScreenPos2[2] - def4)
+                                    draw.Line(pScreenPos2[1] - def3, pScreenPos2[2] - def4, pScreenPos2[1] - def3, pScreenPos2[2] - def2)
+                                    draw.Line(pScreenPos2[1] - def3, pScreenPos2[2] - def2, pScreenPos2[1] - def1, pScreenPos2[2] - def2)
+                                    draw.Line(pScreenPos2[1] - def1, pScreenPos2[2] - def2, pScreenPos2[1] - def1, pScreenPos2[2])
+                                    draw.Line(pScreenPos2[1] + def1 + 1, pScreenPos2[2] + 1, pScreenPos2[1] - def1 + 1, pScreenPos2[2] + 1)    -- vvv Draw the cross again for extra width vvv
+                                    draw.Line(pScreenPos2[1] + def1 + 1, pScreenPos2[2] + 1, pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def2 + 1)
+                                    draw.Line(pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def2 + 1, pScreenPos2[1] + def3 + 1, pScreenPos2[2] - def2 + 1)
+                                    draw.Line(pScreenPos2[1] + def3 + 1, pScreenPos2[2] - def2 + 1, pScreenPos2[1] + def3 + 1, pScreenPos2[2] - def4 + 1)
+                                    draw.Line(pScreenPos2[1] + def3 + 1, pScreenPos2[2] - def4 + 1, pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def4 + 1)
+                                    draw.Line(pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def4 + 1, pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def5 + 1)
+                                    draw.Line(pScreenPos2[1] + def1 + 1, pScreenPos2[2] - def5 + 1, pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def5 + 1)
+                                    draw.Line(pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def5 + 1, pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def4 + 1)
+                                    draw.Line(pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def4 + 1, pScreenPos2[1] - def3 + 1, pScreenPos2[2] - def4 + 1)
+                                    draw.Line(pScreenPos2[1] - def3 + 1, pScreenPos2[2] - def4 + 1, pScreenPos2[1] - def3 + 1, pScreenPos2[2] - def2 + 1)
+                                    draw.Line(pScreenPos2[1] - def3 + 1, pScreenPos2[2] - def2 + 1, pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def2 + 1)
+                                    draw.Line(pScreenPos2[1] - def1 + 1, pScreenPos2[2] - def2 + 1, pScreenPos2[1] - def1 + 1, pScreenPos2[2] + 1)
+                                end
+                            end
+                        --else
+                        -- todo: Color cross based on uber %, rainbow at 100% uber
+                        -- todo: Display distance from player in the cross
+                        -- todo: Warnings if no medics were found
+                        end
+                    end
+                end
+            end
+        end
+        if (mfTimer > 12 * 66) then                                                                                                            -- Remove the cross after 12 seconds (isn't this fps-based? on 144hz monitors, 66 = 5.5 seconds. In that case, this may show longer than it should for others)
+            mfTimer = 0
+        end
+    end
+
+end
+
 
 --[[ Executes upon stringCmd ]]--
 local function OnStringCmd(stringCmd)  -- Called when a string command is sent
