@@ -7,7 +7,7 @@ local MenuManager = {
     CurrentID = 1,
     Menus = {},
     Font = draw.CreateFont("Verdana", 14, 510),
-    Version = 1.51,
+    Version = 1.52,
     DebugInfo = false
 }
 
@@ -141,7 +141,7 @@ function RGBtoHSV(r, g, b)
         h = h / 6
     end
 
-    return h, s, v
+    return math.floor(h), math.floor(s), math.floor(v)
 end
 
 --[[ Component Class ]]
