@@ -30,7 +30,7 @@ local function OnCreateMove()
 end
 
 local function OnUnload()
-    MenuLib.RemoveMenu(menu)
+    MenuLib.RemoveMenu(Menu)
 
     client.Command('play "ui/buttonclickrelease"', true)
 end
