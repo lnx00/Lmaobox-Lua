@@ -4,9 +4,6 @@
     Author: LNX (github.com/lnx00)
 ]]
 
--- TODO: Remove this before release
-if UnloadLib ~= nil then UnloadLib() end
-
 ---@type boolean, LNXlib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
