@@ -1,7 +1,7 @@
 --[[
     Simple ESP for Lmaobox
-    Dependencies: LNXlib (github.com/lnx00/Lmaobox-Library)
     Author: LNX (github.com/lnx00)
+    Dependencies: LNXlib (github.com/lnx00/Lmaobox-Library)
 ]]
 
 ---@type boolean, LNXlib
