@@ -1,3 +1,8 @@
+--[[
+    Custom Aimbot for Lmaobox
+    Author: github.com/lnx00
+]]
+
 if UnloadLib then UnloadLib() end
 
 ---@alias AimTarget { entity : Entity, pos : Vector3, angles : EulerAngles, factor : number }
