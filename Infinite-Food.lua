@@ -5,7 +5,7 @@
     Dependencies: LNXlib (github.com/lnx00/Lmaobox-Library)
 ]]
 
----@type boolean, LNXlib
+---@type boolean, lnxLib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
 assert(Lib.GetVersion() >= 0.89, "LNXlib version is too old, please update it!")
@@ -18,6 +18,8 @@ local tauntTimer = Timer.new()
 ---@param userCmd UserCmd
 local function OnUserCmd(userCmd)
     local localPlayer = WPlayer.GetLocal()
+    if not localPlayer then return end
+
     if not localPlayer:IsAlive()
         or not key:Down()
         or engine.IsGameUIVisible()
