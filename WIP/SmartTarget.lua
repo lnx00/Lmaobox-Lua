@@ -44,17 +44,22 @@ local function OnDraw()
         local distance = (player:GetAbsOrigin() - localPlayer:GetAbsOrigin()):Length()
         local health = player:GetHealth()
 
+        local angles = Math.PositionAngles(localPlayer:GetAbsOrigin(), player:GetAbsOrigin())
+        local fov = Math.AngleFov(engine.GetViewAngles(), angles)
+
         local distanceFactor = Math.RemapValClamped(distance, settings.MinDistance, settings.MaxDistance, 1, 0.1)
         local healthFactor = Math.RemapValClamped(health, settings.MinHealth, settings.MaxHealth, 1, 0.5)
+        local fovFactor = Math.RemapValClamped(fov, settings.MinFOV, settings.MaxFOV, 1, 0.5)
         --print("Distance: " .. distance .. " | Health: " .. health .. " | DistanceFactor: " .. distanceFactor .. " | HealthFactor: " .. healthFactor)
 
-        local factor = distanceFactor * healthFactor
+        local factor = distanceFactor * healthFactor * fovFactor
         table.insert(targetList, { player = player, factor = factor })
 
         if settings.ShowFactors then
             local screenPos = client.WorldToScreen(player:GetAbsOrigin())
             if screenPos then
-                draw.Text(screenPos[1], screenPos[2] - 15, string.format("DistanceFactor: %.2f, HealthFactor: %.2f, Total: %.2f", distanceFactor, healthFactor, factor))
+                draw.Text(screenPos[1], screenPos[2] - 15, string.format("Distance: %.2f, Health: %.2f, Fov: %.2f, Total: %.2f", distanceFactor, healthFactor, fovFactor, factor))
+                --draw.Text(screenPos[1], screenPos[2] - 15, string.format("Distance: %.2f, Health: %.2f, FOV: %.2f", distance, health, fov))
             end
         end
 
@@ -93,7 +98,7 @@ local function OnDraw()
         ImMenu.Separator()
         ImMenu.Text("Targets")
         for i, target in pairs(targetList) do
-            ImMenu.Text(string.format("%d. %s (%.2f)", i, target.player:GetName(), target.factor))
+            ImMenu.Text(string.format("%d. %s (%.3f)", i, target.player:GetName(), target.factor))
         end
 
         ImMenu.End()
