@@ -3,8 +3,6 @@
     Author: github.com/lnx00
 ]]
 
-if UnloadLib then UnloadLib() end
-
 ---@alias AimTarget { entity : Entity, pos : Vector3, angles : EulerAngles, factor : number }
 
 ---@type boolean, lnxLib
@@ -25,7 +23,7 @@ local Hitbox = {
 }
 
 local options = {
-    AimKey = KEY_R,
+    AimKey = KEY_LSHIFT,
     AutoShoot = true,
     Silent = true,
     AimPos = Hitbox.Head,
@@ -34,6 +32,7 @@ local options = {
 
 local currentTarget = nil
 
+-- Returns the best target (lowest fov)
 ---@param me WPlayer
 ---@return AimTarget? target
 local function GetBestTarget(me)
@@ -46,6 +45,7 @@ local function GetBestTarget(me)
         if not entity:IsAlive() then goto continue end
         if entity:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then goto continue end
 
+        -- FOV Check
         local player = WPlayer.FromEntity(entity)
         local aimPos = player:GetHitboxPos(options.AimPos)
         local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
