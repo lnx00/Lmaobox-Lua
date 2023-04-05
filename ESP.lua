@@ -1,15 +1,16 @@
 --[[
     Simple ESP for Lmaobox
     Author: LNX (github.com/lnx00)
-    Dependencies: LNXlib (github.com/lnx00/Lmaobox-Library)
+    Dependencies: lnxLib (github.com/lnx00/Lmaobox-Library)
 ]]
 
----@type boolean, LNXlib
-local libLoaded, Lib = pcall(require, "LNXlib")
-assert(libLoaded, "LNXlib not found, please install it!")
-assert(Lib.GetVersion() >= 0.75, "LNXlib version is too old, please update it!")
+---@type boolean, lnxLib
+local libLoaded, lnxLib = pcall(require, "lnxLib")
+assert(libLoaded, "lnxLib not found, please install it!")
+assert(lnxLib.GetVersion() >= 0.969, "lnxLib version is too old, please update it!")
 
-local TF2, Helpers = Lib.TF2, Lib.TF2.Helpers
+local TF2, Helpers = lnxLib.TF2, lnxLib.TF2.Helpers
+local WPlayer = TF2.WPlayer
 
 local espFont = draw.CreateFont("Verdana", 16, 800)
 
@@ -23,7 +24,7 @@ local function OnDraw()
     for _, entity in ipairs(players) do
         if entity == localPlayer or not entity:IsAlive() or entity:IsDormant() then goto continue end
 
-        local player = TF2.WPlayer.FromEntity(entity)
+        local player = WPlayer.FromEntity(entity)
         local bEnemy = player:GetTeamNumber() ~= localPlayer:GetTeamNumber()
 
         -- Get the bounding box
@@ -50,5 +51,5 @@ local function OnDraw()
     end
 end
 
-callbacks.Unregister("Draw", "SESP_Draw")
-callbacks.Register("Draw", "SESP_Draw", OnDraw)
+callbacks.Unregister("Draw", "LNX.SESP.Draw")
+callbacks.Register("Draw", "LNX.SESP.Draw", OnDraw)
