@@ -19,6 +19,8 @@ local function OnDraw()
     draw.SetFont(espFont)
 
     local localPlayer = entities.GetLocalPlayer()
+    if not localPlayer then return end
+
     local players = entities.FindByClass("CTFPlayer")
 
     for _, entity in ipairs(players) do
