@@ -24,47 +24,59 @@ local Hitbox = {
 
 local options = {
     AimKey = KEY_LSHIFT,
-    AutoShoot = true,
-    Silent = true,
+    AutoShoot = false,
+    Silent = false,
     AimPos = Hitbox.Head,
     AimFov = 90
 }
 
 local currentTarget = nil
 
+---@param me WPlayer
+---@param entity Entity
+---@return AimTarget?
+local function CheckTarget(me, entity)
+    if not entity then return nil end
+    if not entity:IsAlive() then return nil end
+    if entity:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then return nil end
+
+    -- FOV Check
+    local player = WPlayer.FromEntity(entity)
+    local aimPos = player:GetHitboxPos(options.AimPos)
+    local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
+    local fov = Math.AngleFov(angles, engine.GetViewAngles())
+    if fov > options.AimFov then return nil end
+
+    -- Visiblity Check
+    if not Helpers.VisPos(entity, me:GetEyePos(), aimPos) then return nil end
+
+    -- The target is valid
+    local target = { entity = entity, pos = aimPos, angles = angles, factor = fov }
+    return target
+end
+
 -- Returns the best target (lowest fov)
 ---@param me WPlayer
 ---@return AimTarget? target
 local function GetBestTarget(me)
     local players = entities.FindByClass("CTFPlayer")
-    local target = nil
-    local lastFov = math.huge
+    local bestTarget = nil
+    local bestFactor = math.huge
 
     for _, entity in pairs(players) do
-        if not entity then goto continue end
-        if not entity:IsAlive() then goto continue end
-        if entity:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then goto continue end
-
-        -- FOV Check
-        local player = WPlayer.FromEntity(entity)
-        local aimPos = player:GetHitboxPos(options.AimPos)
-        local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
-        local fov = Math.AngleFov(angles, engine.GetViewAngles())
-        if fov > options.AimFov then goto continue end
-
-        -- Visiblity Check
-        if not Helpers.VisPos(entity, me:GetEyePos(), aimPos) then goto continue end
+        local target = CheckTarget(me, entity)
+        if not target then goto continue end
 
         -- Add valid target
-        if fov < lastFov then
-            lastFov = fov
-            target = { entity = entity, pos = aimPos, angles = angles, factor = fov }
+        if target.factor < bestFactor then
+            bestFactor = target.factor
+            bestTarget = target
         end
 
         ::continue::
     end
 
-    return target
+    return bestTarget
 end
 
 ---@param userCmd UserCmd
