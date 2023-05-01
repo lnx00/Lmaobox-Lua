@@ -26,8 +26,8 @@ local Hitbox = {
 
 local options = {
     AimKey = KEY_LSHIFT,
-    AutoShoot = false,
-    Silent = false,
+    AutoShoot = true,
+    Silent = true,
     AimPos = Hitbox.Head,
     AimFov = 90,
     PredTicks = 64
@@ -64,7 +64,7 @@ local function CheckProjectileTarget(me, weapon, player)
 
     local data = weapon:GetWeaponData()
     --local speed = data.projectileSpeed
-    local speed = 1100
+    local speed = 1980 -- Direct hit speed
     local shootPos = me:GetEyePos()
 
     -- TODO: Do we really need to check all predictions?
@@ -79,11 +79,8 @@ local function CheckProjectileTarget(me, weapon, player)
         local ticks = Conversion.Time_to_Ticks(time)
         if ticks ~= i then
             -- We can't hit this prediction
-            print(string.format("NEQ: dist: %f, time: %f, ticks: %d, i: %d", dist, time, ticks, i))
             goto continue
         end
-
-        print(string.format("EQ: dist: %f, time: %f, ticks: %d, i: %d", dist, time, ticks, i))
 
         -- Visiblity Check
         if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), current.p) then
@@ -91,7 +88,6 @@ local function CheckProjectileTarget(me, weapon, player)
         end
 
         -- The prediction is valid
-        print("Using: " .. i)
         pred = current
         break
 
