@@ -3,6 +3,8 @@
     Author: github.com/lnx00
 ]]
 
+if UnloadLib then UnloadLib() end
+
 ---@alias AimTarget { entity : Entity, pos : Vector3, angles : EulerAngles, factor : number }
 
 ---@type boolean, lnxLib
@@ -11,7 +13,7 @@ assert(libLoaded, "lnxLib not found, please install it!")
 assert(lnxLib.GetVersion() >= 0.967, "LNXlib version is too old, please update it!")
 
 local Math = lnxLib.Utils.Math
-local WPlayer = lnxLib.TF2.WPlayer
+local WPlayer, WWeapon = lnxLib.TF2.WPlayer, lnxLib.TF2.WWeapon
 local Helpers = lnxLib.TF2.Helpers
 
 local Hitbox = {
@@ -33,9 +35,10 @@ local options = {
 local currentTarget = nil
 
 ---@param me WPlayer
+---@param weapon WWeapon
 ---@param entity Entity
 ---@return AimTarget?
-local function CheckTarget(me, entity)
+local function CheckTarget(me, weapon, entity)
     if not entity then return nil end
     if not entity:IsAlive() then return nil end
     if entity:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then return nil end
@@ -57,14 +60,15 @@ end
 
 -- Returns the best target (lowest fov)
 ---@param me WPlayer
+---@param weapon WWeapon
 ---@return AimTarget? target
-local function GetBestTarget(me)
+local function GetBestTarget(me, weapon)
     local players = entities.FindByClass("CTFPlayer")
     local bestTarget = nil
     local bestFactor = math.huge
 
     for _, entity in pairs(players) do
-        local target = CheckTarget(me, entity)
+        local target = CheckTarget(me, weapon, entity)
         if not target then goto continue end
 
         -- Add valid target
@@ -86,8 +90,11 @@ local function OnCreateMove(userCmd)
     local me = WPlayer.GetLocal()
     if not me then return end
 
+    local weapon = me:GetActiveWeapon()
+    if not weapon then return end
+
     -- Get the best target
-    currentTarget = GetBestTarget(me)
+    currentTarget = GetBestTarget(me, weapon)
     if not currentTarget then return end
 
     -- Aim at the target
