@@ -14,7 +14,8 @@ assert(lnxLib.GetVersion() >= 0.967, "LNXlib version is too old, please update i
 
 local Math, Conversion = lnxLib.Utils.Math, lnxLib.Utils.Conversion
 local WPlayer, WWeapon = lnxLib.TF2.WPlayer, lnxLib.TF2.WWeapon
-local Helpers = lnxLib.TF2.Helpers
+local Helpers, Prediction = lnxLib.TF2.Helpers, lnxLib.TF2.Prediction
+local Fonts = lnxLib.UI.Fonts
 
 local Hitbox = {
     Head = 1,
@@ -30,11 +31,18 @@ local options = {
     Silent = true,
     AimPos = Hitbox.Head,
     AimFov = 90,
-    PredTicks = 64
+    PredTicks = 32,
+    Debug = true
 }
 
+---@type AimTarget?
 local currentTarget = nil
 
+local pred = Prediction.new()
+local latency = 0
+local lerp = 0
+
+-- Finds the best position for hitscan weapons
 ---@param me WPlayer
 ---@param weapon WWeapon
 ---@param player WPlayer
@@ -54,28 +62,36 @@ local function CheckHitscanTarget(me, weapon, player)
     return target
 end
 
+-- Finds the best position for projectile weapons
 ---@param me WPlayer
 ---@param weapon WWeapon
 ---@param player WPlayer
 ---@return AimTarget?
 local function CheckProjectileTarget(me, weapon, player)
-    local predList = Helpers.Predict(player, options.PredTicks)
-    if not predList then return nil end
+    local predData = pred:Perform(player, options.PredTicks)
+    if not predData then return nil end
 
-    local data = weapon:GetWeaponData()
-    --local speed = data.projectileSpeed
-    local speed = 1980 -- Direct hit speed
+    local speed = 1980 -- Direct hit speed | TODO: Get the real speed
     local shootPos = me:GetEyePos()
 
-    -- TODO: Do we really need to check all predictions?
-    local pred = nil
-    for i = 0, #predList do
-        local current = predList[i]
+    -- Distance check
+    local maxDistance = options.PredTicks * speed
+    if me:DistTo(player) > maxDistance then return nil end
+
+    -- Visiblity Check
+    if not Helpers.VisPos(player:Unwrap(), shootPos, player:GetAbsOrigin()) then
+        return nil
+    end
+
+    -- Find a valid prediction
+    local targetPos = nil
+    for i = 0, options.PredTicks do
+        local cPos = predData.pos[i]
 
         -- Time check
-        local pos = current.p
+        local pos = cPos
         local dist = (pos - shootPos):Length()
-        local time = dist / speed
+        local time = (dist / speed) + latency + lerp
         local ticks = Conversion.Time_to_Ticks(time)
         if ticks ~= i then
             -- We can't hit this prediction
@@ -83,12 +99,12 @@ local function CheckProjectileTarget(me, weapon, player)
         end
 
         -- Visiblity Check
-        if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), current.p) then
+        --[[if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), cPos) then
             goto continue
-        end
+        end]]
 
         -- The prediction is valid
-        pred = current
+        targetPos = cPos
         break
 
         -- TODO: FOV Check
@@ -96,16 +112,18 @@ local function CheckProjectileTarget(me, weapon, player)
     end
 
     -- We didn't find a valid prediction
-    if not pred then return nil end
+    if not targetPos then return nil end
 
-    local angles = Math.PositionAngles(me:GetEyePos(), pred.p)
+    -- Calculate the fov
+    local angles = Math.PositionAngles(me:GetEyePos(), targetPos)
     local fov = Math.AngleFov(angles, engine.GetViewAngles())
 
     -- The target is valid
-    local target = { entity = player, pos = pred.p, angles = angles, factor = fov }
+    local target = { entity = player, pos = targetPos, angles = angles, factor = fov }
     return target
 end
 
+-- Checks the given target for the given weapon
 ---@param me WPlayer
 ---@param weapon WWeapon
 ---@param entity Entity
@@ -113,7 +131,7 @@ end
 local function CheckTarget(me, weapon, entity)
     if not entity then return nil end
     if not entity:IsAlive() then return nil end
-    if entity:GetTeamNumber() == entities.GetLocalPlayer():GetTeamNumber() then return nil end
+    if entity:GetTeamNumber() == me:GetTeamNumber() then return nil end
 
     local player = WPlayer.FromEntity(entity)
 
@@ -137,7 +155,7 @@ local function CheckTarget(me, weapon, entity)
     return nil
 end
 
--- Returns the best target (lowest fov)
+-- Returns the best target for the given weapon
 ---@param me WPlayer
 ---@param weapon WWeapon
 ---@return AimTarget? target
@@ -146,6 +164,7 @@ local function GetBestTarget(me, weapon)
     local bestTarget = nil
     local bestFactor = math.huge
 
+    -- Check all players
     for _, entity in pairs(players) do
         local target = CheckTarget(me, weapon, entity)
         if not target then goto continue end
@@ -172,6 +191,17 @@ local function OnCreateMove(userCmd)
     local weapon = me:GetActiveWeapon()
     if not weapon then return end
 
+    -- Get current latency
+    local latIn, latOut = clientstate.GetLatencyIn(), clientstate.GetLatencyOut()
+    if latIn and latOut then
+        latency = latIn + latOut
+    else
+        latency = 0
+    end
+
+    -- Get current lerp
+    _, lerp = client.GetConVar("cl_interp")
+
     -- Get the best target
     currentTarget = GetBestTarget(me, weapon)
     if not currentTarget then return end
@@ -189,10 +219,21 @@ local function OnCreateMove(userCmd)
 end
 
 local function OnDraw()
-    if not currentTarget then return end
+    draw.SetFont(Fonts.Verdana)
+    draw.Color(255, 255, 255, 255)
+
+    -- Draw current latency
+    draw.Text(20, 140, string.format("Latency: %.2f", latency))
 
     local me = WPlayer.GetLocal()
-    if not me then return end
+    if not me or not currentTarget then return end
+
+    -- Draw the current target
+    local screenPos = client.WorldToScreen(currentTarget.pos)
+    if screenPos then
+        draw.Color(255, 255, 255, 255)
+        draw.Text(screenPos[1], screenPos[2], "X")
+    end
 end
 
 callbacks.Unregister("CreateMove", "LNX.Aimbot.CreateMove")
