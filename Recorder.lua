@@ -1,13 +1,14 @@
-if UnloadLib ~= nil then UnloadLib() end
+---@type boolean, lnxLib
+local libLoaded, lnxLib = pcall(require, "lnxLib")
+assert(libLoaded, "lnxLib not found, please install it!")
+assert(lnxLib.GetVersion() >= 0.965, "lnxLib version is too old, please update it!")
 
----@type lnxLib
-local lnxLib = require("lnxLib")
-lnxLib.Utils.UnloadPackages("ImMenu")
+local Fonts = lnxLib.UI.Fonts
 
-local Fonts, Notify = lnxLib.UI.Fonts, lnxLib.UI.Notify
-
----@type ImMenu
-local ImMenu = require("ImMenu")
+---@type boolean, ImMenu
+local menuLoaded, ImMenu = pcall(require, "ImMenu")
+assert(menuLoaded, "ImMenu not found, please install it!")
+assert(ImMenu.GetVersion() >= 0.66, "ImMenu version is too old, please update it!")
 
 local currentTick = 0
 local currentData = {}
