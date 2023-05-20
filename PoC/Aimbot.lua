@@ -135,6 +135,11 @@ local function CheckTarget(me, weapon, entity)
 
     local player = WPlayer.FromEntity(entity)
 
+    -- FOV check
+    --local angles = Math.PositionAngles(me:GetEyePos(), player:GetAbsOrigin())
+    --local fov = Math.AngleFov(angles, engine.GetViewAngles())
+    --if fov > options.AimFov then return nil end
+
     if weapon:IsShootingWeapon() then
         -- TODO: Improve this
 
@@ -191,6 +196,8 @@ local function OnCreateMove(userCmd)
     local weapon = me:GetActiveWeapon()
     if not weapon then return end
 
+    --if not Helpers.CanShoot(weapon) then return end
+
     -- Get current latency
     local latIn, latOut = clientstate.GetLatencyIn(), clientstate.GetLatencyOut()
     if latIn and latOut then
@@ -216,14 +223,17 @@ local function OnCreateMove(userCmd)
     if options.AutoShoot then
         userCmd.buttons = userCmd.buttons | IN_ATTACK
     end
+
+    currentTarget = nil
 end
 
 local function OnDraw()
     draw.SetFont(Fonts.Verdana)
     draw.Color(255, 255, 255, 255)
 
-    -- Draw current latency
+    -- Draw current latency and lerp
     draw.Text(20, 140, string.format("Latency: %.2f", latency))
+    draw.Text(20, 160, string.format("Lerp: %.2f", lerp))
 
     local me = WPlayer.GetLocal()
     if not me or not currentTarget then return end
