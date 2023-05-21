@@ -12,8 +12,9 @@ local options = {
 }
 
 local replayData = Deque.new()
-local currentTarget = 0
-local currentRecord = nil
+local currentTarget = 0 ---@type integer
+local currentRecord = nil ---@type table<Vector3, Vector3, integer, integer, integer>[]?
+local localPlayer = nil ---@type Entity
 local isPlaying = false
 
 -- Starts the replay
@@ -39,8 +40,6 @@ local function DoRecord(me)
 
     -- Record all players
     for idx, ent in pairs(players) do
-        if idx == me:GetIndex() then goto continue end
-
         local positon = ent:GetAbsOrigin()
         local viewAngles = ent:GetPropVector("tfnonlocaldata", "m_angEyeAngles[0]")
         local flags = ent:GetPropInt("m_fFlags")
@@ -73,36 +72,35 @@ local function DoReplay(me)
 
     -- Pop the current tick record
     currentRecord = replayData:popFront()
-
-    -- Retrive the current target
-    local target = entities.GetByUserID(currentTarget)
-    if not target then return end
-
-    -- Set the observer mode and target
-    me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
-    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target
-    me:SetPropInt(target:GetTeamNumber(), "m_iTeamNum")
-
-    local wTarget = WPlayer.FromEntity(target)
-    engine.SetViewAngles(wTarget:GetEyeAngles())
 end
 
 ---@param userCmd UserCmd
 local function OnCreateMove(userCmd)
     local me = entities.GetLocalPlayer()
-    if not me then return end
-
-    if me:IsAlive() then
-        if isPlaying then StopReplay() end
-        DoRecord(me)
+    if me then
+        localPlayer = me
     else
+        return
+    end
+
+    -- Stop the replay if we're alive
+    if me:IsAlive() and isPlaying then
+        StopReplay()
+    end
+
+    if isPlaying then
         DoReplay(me)
+    else
+        DoRecord(me)
     end
 end
 
 -- Sets the player's position and angles
 local function OnPostPropUpdate()
     if not isPlaying then return end
+
+    local me = localPlayer
+    if not me or not me:IsValid() then return end
 
     local players = entities.FindByClass("CTFPlayer")
 
@@ -124,6 +122,20 @@ local function OnPostPropUpdate()
 
         ::continue::
     end
+
+    --[[ Apply observer mode ]]
+
+    -- Retrive the current target
+    local target = entities.GetByUserID(currentTarget)
+    if not target then return end
+
+    -- Set the observer mode and target
+    me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
+    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target
+    me:SetPropInt(target:GetTeamNumber(), "m_iTeamNum")
+
+    local wTarget = WPlayer.FromEntity(target)
+    engine.SetViewAngles(wTarget:GetEyeAngles())
 end
 
 -- Starts the replay when we die
@@ -141,7 +153,9 @@ local function OnGameEvent(event)
         -- Check if we're the target
         if attacker ~= playerInfo.UserID and target == playerInfo.UserID then
             -- Start the replay after 2 seconds
-            StartReplay(attacker)
+            DelayedCall(2, function ()
+                StartReplay(attacker)
+            end)
         end
     end
 end
