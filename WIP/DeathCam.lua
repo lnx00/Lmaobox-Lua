@@ -12,6 +12,7 @@ local options = {
 }
 
 local replayData = Deque.new()
+local currentTarget = 0
 local currentRecord = nil
 local isRecording = false
 local isReplaying = false
@@ -34,7 +35,7 @@ local function DoRecord(me)
         local flags = player:GetPropInt("m_fFlags")
         local health = player:GetHealth()
 
-        record[idx] = { positon, viewAngles, flags }
+        record[idx] = { positon, viewAngles, flags, health }
 
         ::continue::
     end
@@ -53,7 +54,7 @@ local function DoReplay(me)
     currentRecord = replayData:popFront()
 
     -- Force the observer mode to the target
-    local target = entities.GetByIndex(2)
+    local target = entities.GetByUserID(currentTarget)
     if not target then return end
 
     me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
@@ -114,7 +115,7 @@ local function OnGameEvent(event)
         if not playerInfo then return end
 
         if attacker ~= playerInfo.UserID and target == playerInfo.UserID then
-            print("we died...")
+            currentTarget = attacker
         end
     end
 end
