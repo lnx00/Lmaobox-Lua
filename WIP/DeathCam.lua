@@ -7,7 +7,7 @@ local Fonts = lnxLib.UI.Fonts
 local WPlayer = lnxLib.TF2.WPlayer
 
 local options = {
-    Ticks = 250,
+    Ticks = 300,
     ObserverMode = 5
 }
 
@@ -54,7 +54,7 @@ local function DoReplay(me)
     if not target then return end
 
     me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
-    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target to null
+    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target
     me:SetPropInt(target:GetTeamNumber(), "m_iTeamNum")
 
     local wTarget = WPlayer.FromEntity(target)
