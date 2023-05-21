@@ -22,6 +22,18 @@ local isPlaying = false
 local function StartReplay(targetId)
     currentTarget = targetId
     isPlaying = true
+
+    local me = localPlayer
+    if not me then return end
+
+    -- Retrive the current target
+    local target = entities.GetByUserID(targetId)
+    if not target then return end
+
+    -- Set the observer mode and target
+    me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
+    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target
+    --me:SetPropInt(target:GetTeamNumber(), "m_iTeamNum")
 end
 
 -- Stops the replay
@@ -30,6 +42,11 @@ local function StopReplay()
     currentRecord = nil
     currentTarget = 0
     replayData:clear()
+
+    local me = localPlayer
+    if not me then return end
+
+    --me:SetPropInt(0, "m_iObserverMode")
 end
 
 -- Records the current tick for all enemies
@@ -72,6 +89,15 @@ local function DoReplay(me)
 
     -- Pop the current tick record
     currentRecord = replayData:popFront()
+
+    --[[ Apply observer mode ]]
+
+    -- Retrive the current target
+    local target = entities.GetByUserID(currentTarget)
+    if not target then return end
+
+    local wTarget = WPlayer.FromEntity(target)
+    engine.SetViewAngles(wTarget:GetEyeAngles())
 end
 
 ---@param userCmd UserCmd
@@ -110,6 +136,8 @@ local function OnPostPropUpdate()
     if not record then return end
 
     for idx, ent in pairs(players) do
+        if idx == me:GetIndex() then goto continue end
+
         local playerRecord = record[idx]
         if not playerRecord then goto continue end
 
@@ -122,20 +150,6 @@ local function OnPostPropUpdate()
 
         ::continue::
     end
-
-    --[[ Apply observer mode ]]
-
-    -- Retrive the current target
-    local target = entities.GetByUserID(currentTarget)
-    if not target then return end
-
-    -- Set the observer mode and target
-    me:SetPropInt(options.ObserverMode, "m_iObserverMode") -- Set observer mode to first person
-    me:SetPropEntity(target, "m_hObserverTarget") -- Set observer target
-    me:SetPropInt(target:GetTeamNumber(), "m_iTeamNum")
-
-    local wTarget = WPlayer.FromEntity(target)
-    engine.SetViewAngles(wTarget:GetEyeAngles())
 end
 
 -- Starts the replay when we die
