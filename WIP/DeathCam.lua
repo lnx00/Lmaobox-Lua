@@ -7,7 +7,7 @@ local Fonts = lnxLib.UI.Fonts
 local WPlayer = lnxLib.TF2.WPlayer
 
 local options = {
-    Ticks = 300,
+    Ticks = 250,
     ObserverMode = 5
 }
 
@@ -24,16 +24,12 @@ local function DoRecord(me)
     local record = {}
 
     for idx, ent in pairs(players) do
-        if idx == me:GetIndex() then goto continue end
-        if ent:GetTeamNumber() == me:GetTeamNumber() then goto continue end
+        if not ent:IsAlive() or ent:IsDormant() then goto continue end
 
-        local player = WPlayer.FromEntity(ent)
-        if not player:IsAlive() then goto continue end
-
-        local positon = player:GetAbsOrigin()
-        local viewAngles = player:GetEyeAngles()
-        local flags = player:GetPropInt("m_fFlags")
-        local health = player:GetHealth()
+        local positon = ent:GetAbsOrigin()
+        local viewAngles = ent:GetPropVector("tfnonlocaldata", "m_angEyeAngles[0]")
+        local flags = ent:GetPropInt("m_fFlags")
+        local health = ent:GetHealth()
 
         record[idx] = { positon, viewAngles, flags, health }
 
@@ -92,10 +88,9 @@ local function OnPostPropUpdate()
         local playerRecord = record[idx]
         if not playerRecord then goto continue end
 
-        --print("Forcing for " .. idx)
         ent:SetPropVector(playerRecord[1], "tfnonlocaldata", "m_vecOrigin")
         ent:SetAbsOrigin(playerRecord[1])
-        --ent:SetPropVector(playerRecord[2], "tfnonlocaldata", "m_angEyeAngles[0]")
+        ent:SetPropVector(playerRecord[2], "tfnonlocaldata", "m_angEyeAngles[0]")
         ent:SetPropInt(playerRecord[3], "m_fFlags")
         ent:SetPropInt(playerRecord[4], "m_iHealth")
 
