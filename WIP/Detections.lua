@@ -10,15 +10,17 @@ local libLoaded, lnxLib = pcall(require, "lnxLib")
 assert(libLoaded, "lnxLib not found, please install it!")
 assert(lnxLib.GetVersion() >= 0.981, "lnxLib version is too old, please update it!")
 
+local Conversion = lnxLib.Utils.Conversion
 local WPlayer = lnxLib.TF2.WPlayer
 
 local options = {
-    StrikeLimit = 3,
+    StrikeLimit = 10,
+    MaxTickDelta = 8,
     MaxAngleDelta = 50,
     AutoMark = true
 }
 
-local prevData = {} ---@type PlayerData
+local prevData = nil ---@type PlayerData
 local playerStrikes = {} ---@type table<number, number>
 
 local function StrikePlayer(idx, reason)
@@ -35,12 +37,27 @@ local function StrikePlayer(idx, reason)
     end
 end
 
+-- Detects invalid pitch (looking up/down too much)
 ---@param player WPlayer
 local function CheckPitch(player)
     local angles = player:GetEyeAngles()
 
     if angles.pitch >= 90 or angles.pitch <= -90 then
         StrikePlayer(player:GetIndex(), "Invalid pitch")
+    end
+end
+
+-- Check if a player is choking packets (Fakelag, Doubletap)
+---@param player WPlayer
+local function CheckChoke(player)
+    local simTime = player:GetSimulationTime()
+    local oldSimTime = prevData.SimTime[player:GetIndex()]
+    if not oldSimTime then return end
+
+    local delta = simTime - oldSimTime
+    local deltaTicks = Conversion.Time_to_Ticks(delta)
+    if deltaTicks > options.MaxTickDelta then
+        StrikePlayer(player:GetIndex(), "Choking packets")
     end
 end
 
@@ -66,6 +83,10 @@ local function OnCreateMove(userCmd)
         currentData.SimTime[idx] = player:GetSimulationTime()
 
         CheckPitch(player)
+        
+        if prevData then
+            CheckChoke(player)
+        end
 
         ::continue::
     end
