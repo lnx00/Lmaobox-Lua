@@ -28,10 +28,10 @@ local Hitbox = {
 local options = {
     AimKey = KEY_LSHIFT,
     AutoShoot = true,
-    Silent = false,
+    Silent = true,
     AimPos = Hitbox.Head,
     AimFov = 30,
-    PredTicks = 32,
+    PredTicks = 50,
     Debug = true
 }
 
@@ -92,7 +92,7 @@ local function CheckProjectileTarget(me, weapon, player)
         -- Time check
         local dist = (pos - shootPos):Length()
         local time = (dist / speed) + latency + lerp
-        local ticks = Conversion.Time_to_Ticks(time)
+        local ticks = Conversion.Time_to_Ticks(time) + 1
         if ticks ~= i then goto continue end
 
         -- Visiblity Check
@@ -194,7 +194,10 @@ local function OnCreateMove(userCmd)
     local weapon = me:GetActiveWeapon()
     if not weapon then return end
 
-    --if not Helpers.CanShoot(weapon) then return end
+    -- Check if we can shoot
+    local flCurTime = globals.CurTime()
+    local canShoot = weapon:GetNextPrimaryAttack() <= flCurTime and me:GetNextAttack() <= flCurTime
+    --if not canShoot then return end
 
     -- Get current latency
     local latIn, latOut = clientstate.GetLatencyIn(), clientstate.GetLatencyOut()
@@ -234,7 +237,9 @@ local function OnDraw()
     draw.Text(20, 160, string.format("Lerp: %.2f", lerp))
 
     local me = WPlayer.GetLocal()
-    if not me or not currentTarget then return end
+    if not me then return end
+
+    if not currentTarget then return end
 
     -- Draw the current target
     local screenPos = client.WorldToScreen(currentTarget.pos)
