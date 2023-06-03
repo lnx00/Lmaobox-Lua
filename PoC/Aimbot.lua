@@ -10,11 +10,11 @@ if UnloadLib then UnloadLib() end
 ---@type boolean, lnxLib
 local libLoaded, lnxLib = pcall(require, "lnxLib")
 assert(libLoaded, "lnxLib not found, please install it!")
-assert(lnxLib.GetVersion() >= 0.967, "LNXlib version is too old, please update it!")
+assert(lnxLib.GetVersion() >= 0.984, "LNXlib version is too old, please update it!")
 
 local Math, Conversion = lnxLib.Utils.Math, lnxLib.Utils.Conversion
 local WPlayer, WWeapon = lnxLib.TF2.WPlayer, lnxLib.TF2.WWeapon
-local Helpers, Prediction = lnxLib.TF2.Helpers, lnxLib.TF2.Prediction
+local Helpers = lnxLib.TF2.Helpers
 local Fonts = lnxLib.UI.Fonts
 
 local Hitbox = {
@@ -28,9 +28,9 @@ local Hitbox = {
 local options = {
     AimKey = KEY_LSHIFT,
     AutoShoot = true,
-    Silent = true,
+    Silent = false,
     AimPos = Hitbox.Head,
-    AimFov = 90,
+    AimFov = 30,
     PredTicks = 32,
     Debug = true
 }
@@ -38,7 +38,6 @@ local options = {
 ---@type AimTarget?
 local currentTarget = nil
 
-local pred = Prediction.new()
 local latency = 0
 local lerp = 0
 
@@ -52,7 +51,6 @@ local function CheckHitscanTarget(me, weapon, player)
     local aimPos = player:GetHitboxPos(options.AimPos)
     local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
     local fov = Math.AngleFov(angles, engine.GetViewAngles())
-    if fov > options.AimFov then return nil end
 
     -- Visiblity Check
     if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), aimPos) then return nil end
@@ -68,10 +66,10 @@ end
 ---@param player WPlayer
 ---@return AimTarget?
 local function CheckProjectileTarget(me, weapon, player)
-    local predData = pred:Perform(player, options.PredTicks)
-    if not predData then return nil end
+    local projInfo = weapon:GetProjectileInfo()
+    if not projInfo then return nil end
 
-    local speed = 1980 -- Direct hit speed | TODO: Get the real speed
+    local speed = projInfo[1]
     local shootPos = me:GetEyePos()
 
     -- Distance check
@@ -83,20 +81,19 @@ local function CheckProjectileTarget(me, weapon, player)
         return nil
     end
 
+    local predData = Helpers.Predict(player, options.PredTicks)
+    if not predData then return nil end
+
     -- Find a valid prediction
     local targetPos = nil
     for i = 0, options.PredTicks do
-        local cPos = predData.pos[i]
+        local pos = predData.pos[i]
 
         -- Time check
-        local pos = cPos
         local dist = (pos - shootPos):Length()
         local time = (dist / speed) + latency + lerp
         local ticks = Conversion.Time_to_Ticks(time)
-        if ticks ~= i then
-            -- We can't hit this prediction
-            goto continue
-        end
+        if ticks ~= i then goto continue end
 
         -- Visiblity Check
         --[[if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), cPos) then
@@ -104,7 +101,7 @@ local function CheckProjectileTarget(me, weapon, player)
         end]]
 
         -- The prediction is valid
-        targetPos = cPos
+        targetPos = pos
         break
 
         -- TODO: FOV Check
@@ -136,9 +133,9 @@ local function CheckTarget(me, weapon, entity)
     local player = WPlayer.FromEntity(entity)
 
     -- FOV check
-    --local angles = Math.PositionAngles(me:GetEyePos(), player:GetAbsOrigin())
-    --local fov = Math.AngleFov(angles, engine.GetViewAngles())
-    --if fov > options.AimFov then return nil end
+    local angles = Math.PositionAngles(me:GetEyePos(), player:GetAbsOrigin())
+    local fov = Math.AngleFov(angles, engine.GetViewAngles())
+    if fov > options.AimFov then return nil end
 
     if weapon:IsShootingWeapon() then
         -- TODO: Improve this
@@ -147,11 +144,9 @@ local function CheckTarget(me, weapon, entity)
         if projType == 1 then
             -- Hitscan weapon
             return CheckHitscanTarget(me, weapon, player)
-        elseif projType == 2 then
+        else
             -- Projectile weapon
             return CheckProjectileTarget(me, weapon, player)
-        else
-            
         end
     elseif weapon:IsMeleeWeapon() then
         -- TODO: Melee Aimbot
@@ -180,6 +175,9 @@ local function GetBestTarget(me, weapon)
             bestTarget = target
         end
 
+        -- TODO: Continue searching
+        break
+
         ::continue::
     end
 
@@ -207,7 +205,7 @@ local function OnCreateMove(userCmd)
     end
 
     -- Get current lerp
-    _, lerp = client.GetConVar("cl_interp")
+    lerp = client.GetConVar("cl_interp") or 0
 
     -- Get the best target
     currentTarget = GetBestTarget(me, weapon)
