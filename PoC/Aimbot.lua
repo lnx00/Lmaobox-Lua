@@ -15,6 +15,7 @@ assert(lnxLib.GetVersion() >= 0.984, "LNXlib version is too old, please update i
 local Math, Conversion = lnxLib.Utils.Math, lnxLib.Utils.Conversion
 local WPlayer, WWeapon = lnxLib.TF2.WPlayer, lnxLib.TF2.WWeapon
 local Helpers = lnxLib.TF2.Helpers
+local Prediction = lnxLib.TF2.Prediction
 local Fonts = lnxLib.UI.Fonts
 
 local Hitbox = {
@@ -30,8 +31,8 @@ local options = {
     AutoShoot = true,
     Silent = true,
     AimPos = Hitbox.Head,
-    AimFov = 30,
-    PredTicks = 50,
+    AimFov = 40,
+    PredTicks = 60,
     Debug = true
 }
 
@@ -49,6 +50,7 @@ local lerp = 0
 local function CheckHitscanTarget(me, weapon, player)
     -- FOV Check
     local aimPos = player:GetHitboxPos(options.AimPos)
+    if not aimPos then return nil end
     local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
     local fov = Math.AngleFov(angles, engine.GetViewAngles())
 
@@ -81,7 +83,7 @@ local function CheckProjectileTarget(me, weapon, player)
         return nil
     end
 
-    local predData = Helpers.Predict(player, options.PredTicks)
+    local predData = Prediction.Player(player, options.PredTicks)
     if not predData then return nil end
 
     -- Find a valid prediction
@@ -110,9 +112,11 @@ local function CheckProjectileTarget(me, weapon, player)
 
     -- We didn't find a valid prediction
     if not targetPos then return nil end
+    targetPos = targetPos + Vector3(0, 0, 10) -- TODO: Improve this
 
     -- Calculate the fov
-    local angles = Math.PositionAngles(me:GetEyePos(), targetPos)
+    local angles = Math.SolveProjectile(me:GetEyePos(), targetPos, projInfo[1], projInfo[2])
+    if not angles then return nil end
     local fov = Math.AngleFov(angles, engine.GetViewAngles())
 
     -- The target is valid
