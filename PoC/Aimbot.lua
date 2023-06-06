@@ -88,14 +88,18 @@ local function CheckProjectileTarget(me, weapon, player)
 
     -- Find a valid prediction
     local targetPos = nil
+    local targetAngles = nil
     for i = 0, options.PredTicks do
         local pos = predData.pos[i]
+        local solution = Math.SolveProjectile(me:GetEyePos(), pos, projInfo[1], projInfo[2])
+        if not solution then goto continue end
 
         -- Time check
-        local dist = (pos - shootPos):Length()
-        local time = (dist / speed) + latency + lerp
+        --local time = Conversion.Ticks_to_Time(i)
+        --local dist = (pos - shootPos):Length()
+        local time = solution.time + latency + lerp
         local ticks = Conversion.Time_to_Ticks(time) + 1
-        if ticks ~= i then goto continue end
+        if ticks > i then goto continue end
 
         -- Visiblity Check
         --[[if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), cPos) then
@@ -104,6 +108,7 @@ local function CheckProjectileTarget(me, weapon, player)
 
         -- The prediction is valid
         targetPos = pos
+        targetAngles = solution.angles
         break
 
         -- TODO: FOV Check
@@ -111,16 +116,17 @@ local function CheckProjectileTarget(me, weapon, player)
     end
 
     -- We didn't find a valid prediction
-    if not targetPos then return nil end
-    targetPos = targetPos + Vector3(0, 0, 10) -- TODO: Improve this
+    --if not targetPos then return nil end
+    --targetPos = targetPos + Vector3(0, 0, 10) -- TODO: Improve this
+    if not targetPos or not targetAngles then return nil end
 
     -- Calculate the fov
-    local angles = Math.SolveProjectile(me:GetEyePos(), targetPos, projInfo[1], projInfo[2])
-    if not angles then return nil end
-    local fov = Math.AngleFov(angles, engine.GetViewAngles())
+    --local angles = Math.SolveProjectile(me:GetEyePos(), targetPos, projInfo[1], projInfo[2])
+    --if not angles then return nil end
+    local fov = Math.AngleFov(targetAngles, engine.GetViewAngles())
 
     -- The target is valid
-    local target = { entity = player, pos = targetPos, angles = angles, factor = fov }
+    local target = { entity = player, pos = targetPos, angles = targetAngles, factor = fov }
     return target
 end
 
