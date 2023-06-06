@@ -10,7 +10,7 @@ if UnloadLib then UnloadLib() end
 ---@type boolean, lnxLib
 local libLoaded, lnxLib = pcall(require, "lnxLib")
 assert(libLoaded, "lnxLib not found, please install it!")
-assert(lnxLib.GetVersion() >= 0.984, "LNXlib version is too old, please update it!")
+assert(lnxLib.GetVersion() >= 0.987, "lnxLib version is too old, please update it!")
 
 local Math, Conversion = lnxLib.Utils.Math, lnxLib.Utils.Conversion
 local WPlayer, WWeapon = lnxLib.TF2.WPlayer, lnxLib.TF2.WWeapon
