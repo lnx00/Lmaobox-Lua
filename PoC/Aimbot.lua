@@ -5,7 +5,7 @@
 
 if UnloadLib then UnloadLib() end
 
----@alias AimTarget { entity : Entity, pos : Vector3, angles : EulerAngles, factor : number }
+---@alias AimTarget { entity : Entity, angles : EulerAngles, factor : number }
 
 ---@type boolean, lnxLib
 local libLoaded, lnxLib = pcall(require, "lnxLib")
@@ -36,9 +36,6 @@ local options = {
     Debug = true
 }
 
----@type AimTarget?
-local currentTarget = nil
-
 local latency = 0
 local lerp = 0
 
@@ -58,7 +55,7 @@ local function CheckHitscanTarget(me, weapon, player)
     if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), aimPos) then return nil end
 
     -- The target is valid
-    local target = { entity = player, pos = aimPos, angles = angles, factor = fov }
+    local target = { entity = player, angles = angles, factor = fov }
     return target
 end
 
@@ -87,7 +84,6 @@ local function CheckProjectileTarget(me, weapon, player)
     if not predData then return nil end
 
     -- Find a valid prediction
-    local targetPos = nil
     local targetAngles = nil
     for i = 0, options.PredTicks do
         local pos = predData.pos[i]
@@ -118,7 +114,7 @@ local function CheckProjectileTarget(me, weapon, player)
     -- We didn't find a valid prediction
     --if not targetPos then return nil end
     --targetPos = targetPos + Vector3(0, 0, 10) -- TODO: Improve this
-    if not targetPos or not targetAngles then return nil end
+    if not targetAngles then return nil end
 
     -- Calculate the fov
     --local angles = Math.SolveProjectile(me:GetEyePos(), targetPos, projInfo[1], projInfo[2])
@@ -126,7 +122,7 @@ local function CheckProjectileTarget(me, weapon, player)
     local fov = Math.AngleFov(targetAngles, engine.GetViewAngles())
 
     -- The target is valid
-    local target = { entity = player, pos = targetPos, angles = targetAngles, factor = fov }
+    local target = { entity = player, angles = targetAngles, factor = fov }
     return target
 end
 
@@ -221,7 +217,7 @@ local function OnCreateMove(userCmd)
     lerp = client.GetConVar("cl_interp") or 0
 
     -- Get the best target
-    currentTarget = GetBestTarget(me, weapon)
+    local currentTarget = GetBestTarget(me, weapon)
     if not currentTarget then return end
 
     -- Aim at the target
@@ -234,8 +230,6 @@ local function OnCreateMove(userCmd)
     if options.AutoShoot then
         userCmd.buttons = userCmd.buttons | IN_ATTACK
     end
-
-    currentTarget = nil
 end
 
 local function OnDraw()
@@ -248,15 +242,6 @@ local function OnDraw()
 
     local me = WPlayer.GetLocal()
     if not me then return end
-
-    if not currentTarget then return end
-
-    -- Draw the current target
-    local screenPos = client.WorldToScreen(currentTarget.pos)
-    if screenPos then
-        draw.Color(255, 255, 255, 255)
-        draw.Text(screenPos[1], screenPos[2], "X")
-    end
 end
 
 callbacks.Unregister("CreateMove", "LNX.Aimbot.CreateMove")
