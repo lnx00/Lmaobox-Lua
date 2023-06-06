@@ -4,12 +4,12 @@ local values = {
     ["steam_player_group"] = nil,
     ["steam_player_group_size"] = "123",
     ["state"] = "PlayingMatchGroup",
-    ["matchgrouploc"] = "Casual",
+    ["matchgrouploc"] = "BootCamp",
     ["steam_display"] = "#TF_RichPresence_Display",
     ["status"] = nil
 }
 
----@param key string
+---@param key RichPresenceKey
 ---@param value string
 ---@return string?
 local function OnSetRichPresence(key, value)
