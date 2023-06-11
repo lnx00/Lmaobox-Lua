@@ -30,7 +30,10 @@ local options = {
     AimKey = KEY_LSHIFT,
     AutoShoot = true,
     Silent = true,
-    AimPos = Hitbox.Head,
+    AimPos = {
+        Hitscan = Hitbox.Head,
+        Projectile = Hitbox.Body
+    },
     AimFov = 40,
     PredTicks = 60,
     Debug = true
@@ -46,7 +49,7 @@ local lerp = 0
 ---@return AimTarget?
 local function CheckHitscanTarget(me, weapon, player)
     -- FOV Check
-    local aimPos = player:GetHitboxPos(options.AimPos)
+    local aimPos = player:GetHitboxPos(options.AimPos.Hitscan)
     if not aimPos then return nil end
     local angles = Math.PositionAngles(me:GetEyePos(), aimPos)
     local fov = Math.AngleFov(angles, engine.GetViewAngles())
@@ -69,7 +72,10 @@ local function CheckProjectileTarget(me, weapon, player)
     if not projInfo then return nil end
 
     local speed = projInfo[1]
-    local shootPos = me:GetEyePos()
+    local shootPos = me:GetEyePos() -- TODO: Add weapon offset
+    local aimPos = player:GetHitboxPos(options.AimPos.Projectile)
+    --local aimOffset = aimPos - player:GetAbsOrigin()
+    local aimOffset = Vector3()
 
     -- Distance check
     local maxDistance = options.PredTicks * speed
@@ -80,30 +86,28 @@ local function CheckProjectileTarget(me, weapon, player)
         return nil
     end
 
+    -- Predict the player
     local predData = Prediction.Player(player, options.PredTicks)
     if not predData then return nil end
 
     -- Find a valid prediction
     local targetAngles = nil
     for i = 0, options.PredTicks do
-        local pos = predData.pos[i]
-        local solution = Math.SolveProjectile(me:GetEyePos(), pos, projInfo[1], projInfo[2])
+        local pos = predData.pos[i] + aimOffset
+        local solution = Math.SolveProjectile(shootPos, pos, projInfo[1], projInfo[2])
         if not solution then goto continue end
 
         -- Time check
-        --local time = Conversion.Ticks_to_Time(i)
-        --local dist = (pos - shootPos):Length()
         local time = solution.time + latency + lerp
         local ticks = Conversion.Time_to_Ticks(time) + 1
         if ticks > i then goto continue end
 
         -- Visiblity Check
-        --[[if not Helpers.VisPos(player:Unwrap(), me:GetEyePos(), cPos) then
+        --[[if not Helpers.VisPos(player:Unwrap(), shootPos, cPos) then
             goto continue
         end]]
 
         -- The prediction is valid
-        targetPos = pos
         targetAngles = solution.angles
         break
 
@@ -112,13 +116,9 @@ local function CheckProjectileTarget(me, weapon, player)
     end
 
     -- We didn't find a valid prediction
-    --if not targetPos then return nil end
-    --targetPos = targetPos + Vector3(0, 0, 10) -- TODO: Improve this
     if not targetAngles then return nil end
 
     -- Calculate the fov
-    --local angles = Math.SolveProjectile(me:GetEyePos(), targetPos, projInfo[1], projInfo[2])
-    --if not angles then return nil end
     local fov = Math.AngleFov(targetAngles, engine.GetViewAngles())
 
     -- The target is valid
