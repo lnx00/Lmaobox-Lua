@@ -270,7 +270,8 @@ local function OnCreateMove(userCmd)
 
     -- Auto Shoot
     if options.AutoShoot then
-        if weapon:GetDefIndex() == 56 then
+        if weapon:GetWeaponID() == TF_WEAPON_COMPOUND_BOW
+        or weapon:GetWeaponID() == TF_WEAPON_PIPEBOMBLAUNCHER then
             -- Huntsman
             if weapon:GetChargeBeginTime() > 0 then
                 userCmd.buttons = userCmd.buttons & ~IN_ATTACK
