@@ -36,7 +36,7 @@ local options = {
     },
     AimFov = 40,
     PredTicks = 60,
-    StrafePrediction = false,
+    StrafePrediction = true,
     StrafeSamples = 1,
     DebugInfo = true
 }
@@ -72,7 +72,8 @@ local function CalcStrafe(me)
 
         -- Calculate the delta angle
         if angle.y ~= lastAngles[idx].y then
-            strafeAngles[idx] = angle.y - lastAngles[idx].y
+            local delta = Math.NormalizeAngle(angle.y - lastAngles[idx].y)
+            strafeAngles[idx] = math.clamp(delta, -5, 5)
         end
         lastAngles[idx] = angle
 
@@ -142,9 +143,9 @@ local function CheckProjectileTarget(me, weapon, player)
         if ticks > i then goto continue end
 
         -- Visiblity Check
-        --[[if not Helpers.VisPos(player:Unwrap(), shootPos, cPos) then
+        if not Helpers.VisPos(player:Unwrap(), shootPos, pos) then
             goto continue
-        end]]
+        end
 
         -- The prediction is valid
         targetAngles = solution.angles
@@ -156,9 +157,7 @@ local function CheckProjectileTarget(me, weapon, player)
 
     -- We didn't find a valid prediction
     if not targetAngles then return nil end
-
-    print(strafeAngle)
-
+    
     -- Calculate the fov
     local fov = Math.AngleFov(targetAngles, engine.GetViewAngles())
 
