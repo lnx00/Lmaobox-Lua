@@ -36,7 +36,7 @@ local options = {
     },
     AimFov = 40,
     PredTicks = 60,
-    StrafePrediction = true,
+    StrafePrediction = false,
     StrafeSamples = 1,
     DebugInfo = true
 }
@@ -112,8 +112,8 @@ local function CheckProjectileTarget(me, weapon, player)
     local speed = projInfo[1]
     local shootPos = me:GetEyePos() -- TODO: Add weapon offset
     local aimPos = player:GetHitboxPos(options.AimPos.Projectile)
-    --local aimOffset = aimPos - player:GetAbsOrigin()
-    local aimOffset = Vector3()
+    local aimOffset = aimPos - player:GetAbsOrigin()
+    --local aimOffset = Vector3()
 
     -- Distance check
     local maxDistance = options.PredTicks * speed
@@ -125,7 +125,7 @@ local function CheckProjectileTarget(me, weapon, player)
     end
 
     -- Predict the player
-    local strafeAngle = strafeAngles[player:GetIndex()]
+    local strafeAngle = options.StrafePrediction and strafeAngles[player:GetIndex()] or nil
     local predData = Prediction.Player(player, options.PredTicks, strafeAngle)
     if not predData then return nil end
 
@@ -156,6 +156,8 @@ local function CheckProjectileTarget(me, weapon, player)
 
     -- We didn't find a valid prediction
     if not targetAngles then return nil end
+
+    print(strafeAngle)
 
     -- Calculate the fov
     local fov = Math.AngleFov(targetAngles, engine.GetViewAngles())
@@ -239,21 +241,19 @@ local function OnCreateMove(userCmd)
     local weapon = me:GetActiveWeapon()
     if not weapon then return end
 
-    -- Calculate strafe angles
-    CalcStrafe(me)
+    -- Calculate strafe angles (optional)
+    if options.StrafePrediction then
+        CalcStrafe(me)
+    end
 
     -- Check if we can shoot
-    local flCurTime = globals.CurTime()
+    --[[local flCurTime = globals.CurTime()
     local canShoot = weapon:GetNextPrimaryAttack() <= flCurTime and me:GetNextAttack() <= flCurTime
-    --if not canShoot then return end
+    if not canShoot then return end]]
 
     -- Get current latency
     local latIn, latOut = clientstate.GetLatencyIn(), clientstate.GetLatencyOut()
-    if latIn and latOut then
-        latency = latIn + latOut
-    else
-        latency = 0
-    end
+    latency = (latIn or 0) + (latOut or 0)
 
     -- Get current lerp
     lerp = client.GetConVar("cl_interp") or 0
