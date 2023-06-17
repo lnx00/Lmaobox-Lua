@@ -1,3 +1,8 @@
+--[[
+    Death replay camera for Lmaobox
+    Author: LNX (github.com/lnx00)
+]]
+
 ---@type boolean, lnxLib
 local libLoaded, lnxLib = pcall(require, "lnxLib")
 assert(libLoaded, "lnxLib not found, please install it!")
