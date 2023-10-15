@@ -6,6 +6,8 @@
 ---@type lnxLib
 local lnxLib = require("lnxLib")
 
+---@alias Context { Pos: number[] }
+
 --[[ Constants ]]
 
 local FontWeight = {
@@ -90,6 +92,12 @@ local Colors = {
 
 local currentId = 0
 
+local Style = {
+    HeaderSize = 50,
+    FramePadding = 10,
+    ItemPadding = 4,
+}
+
 --[[ Utils ]]
 
 local function GetUniqueId()
@@ -102,18 +110,57 @@ local function SetColor(color)
     draw.Color(color[1], color[2], color[3], color[4] or 255)
 end
 
-local function RoundedRect(x, y, w, h, r, color)
-    SetColor(color)
-    draw.ColoredCircle(x + r, y + r, r, color[1], color[2], color[3], color[4] or 255)
-    draw.ColoredCircle(x + w - r, y + r, r, color[1], color[2], color[3], color[4] or 255)
-    draw.ColoredCircle(x + w - r, y + h - r, r, color[1], color[2], color[3], color[4] or 255)
-    draw.ColoredCircle(x + r, y + h - r, r, color[1], color[2], color[3], color[4] or 255)
+local function RoundedRect(x1, y1, x2, y2, r, color)
+    local _r, _g, _b, _a = color[1], color[2], color[3], color[4] or 255
 
-    draw.FilledRect(x + r, y, x + w - r, y + h)
-    draw.FilledRect(x, y + r, x + w, y + h - r)
+    draw.Color(_r, _g, _b, _a)
+    draw.ColoredCircle(x1 + r, y1 + r, r, _r, _g, _b, _a)
+    draw.ColoredCircle(x2 - r, y1 + r, r, _r, _g, _b, _a)
+    draw.ColoredCircle(x1 + r, y2 - r, r, _r, _g, _b, _a)
+    draw.ColoredCircle(x2 - r, y2 - r, r, _r, _g, _b, _a)
+
+    draw.FilledRect(x1 + r, y1, x2 - r, y2)
+    draw.FilledRect(x1, y1 + r, x2, y2 - r)
 end
 
 --[[ Components ]]
+
+local CButton = {
+    ID = 0,
+    Visible = true,
+    Pos = { 300, 500 },
+    Size = { 160, 32 },
+    Text = "Button",
+    OnClick = function() end
+}
+CButton.__index = CButton
+
+function CButton.new(pos, size, text, onClick)
+    local self = setmetatable({}, CButton)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Pos = pos or { 300, 500 }
+    self.Size = size or { 160, 32 }
+    self.Text = text or "Button"
+    self.OnClick = onClick or function() end
+
+    return self
+end
+
+function CButton:Draw(ctx)
+    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local w, h = self.Size[1], self.Size[2]
+    local x2, y2 = x1 + w, y1 + h
+
+    -- Background
+    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlFill.Default)
+
+    -- Text
+    draw.SetFont(Fonts.Body)
+    SetColor(Colors.Text.Primary)
+    local tw, th = draw.GetTextSize(self.Text)
+    draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
+end
 
 local CWindow = {
     ID = 0,
@@ -138,34 +185,51 @@ function CWindow.new(pos, size, title)
     return self
 end
 
+function CWindow:AddComponent(component)
+    table.insert(self.Components, component)
+end
+
 function CWindow:Draw()
+    local x1, y1 = self.Pos[1], self.Pos[2]
+    local w, h = self.Size[1], self.Size[2]
+    local x2, y2 = x1 + w, y1 + h
+
     -- Background
     --RoundedRect(self.Pos[1], self.Pos[2], self.Size[1], self.Size[2], 15, Colors.SolidBackground.Base)
     SetColor(Colors.SolidBackground.Base)
-    draw.FilledRect(self.Pos[1], self.Pos[2], self.Pos[1] + self.Size[1], self.Pos[2] + self.Size[2])
+    draw.FilledRect(x1, y1, x2, y2)
 
-    RoundedRect(self.Pos[1] + 200, self.Pos[2] + 55, self.Size[1] - 210, self.Size[2] - 65, 15, Colors.CardBackground.Secondary)
+    -- Content frame (TODO: Move to a component)
+    local lP = 200 + Style.FramePadding
+    RoundedRect(x1 + lP, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
 
-    -- Text
+    -- Title
     draw.SetFont(Fonts.Title)
     SetColor(Colors.Text.Secondary)
-    draw.Text(self.Pos[1] + 20, self.Pos[2] + 10, "System >")
-    SetColor(Colors.Text.Primary)
-    draw.Text(self.Pos[1] + 145, self.Pos[2] + 10, "Power & battery")
+    draw.Text(x1 + 2 * Style.FramePadding, y1 + Style.FramePadding, self.Title)
 
-    draw.SetFont(Fonts.Display)
+    -- Text
     SetColor(Colors.Text.Primary)
-    draw.Text(self.Pos[1] + 30, self.Pos[2] + 100, "23%")
-    draw.SetFont(Fonts.Body)
-    SetColor(Colors.Text.Secondary)
-    draw.Text(self.Pos[1] + 30, self.Pos[2] + 180, "Average Time to charge:")
-    SetColor(Colors.Text.Primary)
-    draw.Text(self.Pos[1] + 200, self.Pos[2] + 180, "5h 23min")
+    draw.SetFont(Fonts.Subtitle)
+    draw.Text(x1 + lP + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
+
+    -- Draw components
+    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize } }
+    for _, component in ipairs(self.Components) do
+        component:Draw(ctx)
+    end
 end
 
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 100, 120 }, { 900, 500 }, "WinUi Demo")
+local button1 = CButton.new({ 0, 0 }, { 190, 32 }, "Aimbot", function() print("Button 1 clicked") end)
+local button2 = CButton.new({ 0, 36 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
+local button3 = CButton.new({ 0, 72 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
+
+window:AddComponent(button1)
+window:AddComponent(button2)
+window:AddComponent(button3)
 
 local function OnDraw()
     window:Draw()
