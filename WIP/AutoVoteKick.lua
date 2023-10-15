@@ -13,7 +13,7 @@ local WPlayer, WPR = TF2.WPlayer, TF2.WPlayerResource
 
 local options = {
     Reason = "cheating",    -- Reason for the votekick
-    RandomVotes = false,    -- Kicks random player
+    RandomVotes = true,    -- Kicks random player
     AutoRetry = true,       -- Retries if the vote fails
     AutoVote = false,       -- Kicks risky players
     MinBetrayals = 5,       -- Minimum betrayals to kick
@@ -43,6 +43,7 @@ end
 
 -- Starts a votekick according to the options
 local function StartVote()
+    print("Starting vote")
     local me = WPlayer.GetLocal()
     local pr = WPR.Get()
     if not me or not pr then return end
@@ -56,6 +57,7 @@ local function StartVote()
         -- Kick betrayers
         if options.AutoVote then
             if kickList[playerInfo.SteamID] >= options.MinBetrayals then
+                PrintLine("Kicking betrayer...")
                 CallVote(playerInfo.UserID)
                 return
             end
@@ -63,6 +65,7 @@ local function StartVote()
 
         -- Kick random players
         if options.RandomVotes then
+            PrintLine("Kicking random player...")
             CallVote(playerInfo.UserID)
             return
         end
@@ -73,6 +76,7 @@ end
 
 -- Processes the vote results
 local function ProcessVote()
+    print("Processing vote")
     local myIndex = client.GetLocalPlayerIndex()
     local callerFriend = TF2.IsFriend(currentVote.caller)
     local targetFriend = TF2.IsFriend(currentVote.target)
@@ -122,9 +126,11 @@ local function OnCreateMove(userCmd)
     if globals.CurTime() < nextVote then return end
     nextVote = globals.CurTime() + 5
 
+    print("vote ready")
+
     -- Are we even able to call a vote?
     if not gamerules.IsMatchTypeCasual() then return end
-    if clientstate.GetClientSignonState() ~= SIGNONSTATE_FULL then return end
+    if clientstate.GetClientSignonState() ~= 6 then return end -- SIGNONSTATE_FULL
     if clientstate.GetConnectTime() < 30 then return end
 
     StartVote()
@@ -132,15 +138,25 @@ end
 
 ---@param event GameEvent
 local function OnGameEvent(event)
-    if event:GetName() == "vote_cast" then
+    local eventName = event:GetName()
+
+    if eventName == "vote_cast" then
+        print("vote cast")
         -- A vote has been cast
         local option = event:GetInt("vote_option")
         local team = event:GetInt("team")
         local entIdx = event:GetInt("entityid")
         local voteIdx = event:GetInt("voteidx")
 
+        if not currentVote then
+            currentVote = {
+                caller = voteIdx,
+                target = entIdx,
+                votes = {}
+            }
+        end
         currentVote.votes[entIdx] = (option == 0)
-    elseif event:GetName() == "game_newmap" then
+    elseif eventName == "game_newmap" then
         -- New map, reset everything
         currentVote = {}
         nextVote = 0
@@ -150,15 +166,19 @@ end
 ---@param msg UserMessage
 local function OnDispatchUserMessage(msg)
     if msg:GetID() == CallVoteFailed then
-        -- We can't call a vote yet
+        -- We can't call a vote yetee
         local reason = msg:ReadByte()
         local cooldown = msg:ReadInt(16) or 0
+        print(reason)
 
-        -- Retry in a few seconds
-        nextVote = globals.CurTime() + cooldown + 1
-        PrintLine(string.format("Cannot call a vote yet! Retrying in %d seconds...", cooldown))
+        if reason == 2 or reason == 8 then
+            -- Retry in a few seconds
+            nextVote = globals.CurTime() + cooldown + 1
+            PrintLine(string.format("Cannot call a vote yet! Retrying in %d seconds...", cooldown))
+        end
     elseif msg:GetID() == VoteStart then
         -- A vote has started
+        print("vote started")
         local team = msg:ReadByte()
         local voteIdx = msg:ReadInt(32)
         local entIdx = msg:ReadByte()
@@ -172,6 +192,7 @@ local function OnDispatchUserMessage(msg)
             votes = {}
         }
     elseif msg:GetID() == VotePass or msg:GetID() == VoteFailed then
+        print("vote ended")
         -- Process the vote
         ProcessVote()
         nextVote = globals.CurTime() + 5
