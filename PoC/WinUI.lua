@@ -81,6 +81,12 @@ local Colors = {
         Disabled = { 67, 67, 67 }, -- Disabled
     },
 
+    -- Used for control strokes that must meet contrast ratio requirements of 3:1
+    ControlStrongStroke = {
+        Default = { 154, 154, 154 },
+        Disabled = { 67, 67, 67 },
+    },
+
     -- Used to create 'cards' - content blocks that live on page and layer background
     CardBackground = {
         Default = { 43, 43, 43 }, -- Default card color
@@ -228,11 +234,17 @@ function CCheckbox:Draw(ctx)
     local x2, y2 = x1 + w, y1 + h
 
     -- Checkmark
-    if self.Checked then
-        RoundedRect(x1, y1, x2, y2, 7, Colors.AccentFill.Default)
-    else
-        RoundedRect(x1, y1, x2, y2, 7, Colors.ControlAltFill.Transparent)
+    local chkColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
+    if Input.MouseInBounds(x1, y1, x2, y2) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            chkColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
+        else
+            chkColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
+        end
     end
+
+    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlStrongStroke.Default)
+    RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 7, chkColor)
 
     -- Text
     draw.SetFont(Fonts.Body)
