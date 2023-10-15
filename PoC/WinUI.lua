@@ -89,7 +89,7 @@ local Colors = {
 
     -- Solid background colors to place layers, card or controls on
     SolidBackground = {
-        Base = { 32, 32, 32 }, -- Used for the bottom most layer of an experience
+        Base = { 32, 32, 32, 254 }, -- Used for the bottom most layer of an experience
         BaseAlt = { 10, 10, 10 }, -- Used for the bottom most layer of an experience
         Secondary = { 28, 28, 28 }, -- Alternate base color for those who need a darker background color
         Tertiary = { 40, 40, 40 }, -- Content layer color
@@ -228,7 +228,7 @@ function CWindow:Draw()
     local x2, y2 = x1 + w, y1 + h
 
     -- Background
-    --RoundedRect(self.Pos[1], self.Pos[2], self.Size[1], self.Size[2], 15, Colors.SolidBackground.Base)
+    --RoundedRect(x1, y1, x2, y2, 15, Colors.SolidBackground.Base)
     SetColor(Colors.SolidBackground.Base)
     draw.FilledRect(x1, y1, x2, y2)
 
