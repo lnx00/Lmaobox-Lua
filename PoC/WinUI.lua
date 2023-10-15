@@ -5,7 +5,7 @@
 
 ---@type lnxLib
 local lnxLib = require("lnxLib")
-local Input = lnxLib.Utils.Input
+local Input, KeyHelper = lnxLib.Utils.Input, lnxLib.Utils.KeyHelper
 
 ---@alias Context { Pos: integer[], Size: integer[] }
 
@@ -105,6 +105,7 @@ local Flags = {
 
 --[[ Vars ]]
 
+local mouseHelper = KeyHelper.new(MOUSE_LEFT)
 local currentId = 0
 
 local Style = {
@@ -195,6 +196,59 @@ function CButton:Draw(ctx)
     draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
 end
 
+local CCheckbox = {
+    ID = 0,
+    Visible = true,
+    Pos = { 300, 500 },
+    Text = "Checkbox",
+    Value = false,
+    Checked = false,
+    OnChange = function(v) end,
+    Flags = Flags.None
+}
+CCheckbox.__index = CCheckbox
+
+function CCheckbox.new(pos, text, value, onChange, flags)
+    local self = setmetatable({}, CCheckbox)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Pos = pos or { 300, 500 }
+    self.Text = text or "Checkbox"
+    self.Value = value or false
+    self.Checked = value or false
+    self.OnChange = onChange or function(v) end
+    self.Flags = flags or Flags.None
+
+    return self
+end
+
+function CCheckbox:Draw(ctx)
+    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local w, h = 20, 20
+    local x2, y2 = x1 + w, y1 + h
+
+    -- Checkmark
+    if self.Checked then
+        RoundedRect(x1, y1, x2, y2, 7, Colors.AccentFill.Default)
+    else
+        RoundedRect(x1, y1, x2, y2, 7, Colors.ControlAltFill.Transparent)
+    end
+
+    -- Text
+    draw.SetFont(Fonts.Body)
+    SetColor(Colors.Text.Primary)
+    local tw, th = draw.GetTextSize(self.Text)
+    draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
+
+    -- Interaction
+    if Input.MouseInBounds(x1, y1, x2, y2) then
+        if mouseHelper:Released() then
+            self.Checked = not self.Checked
+            self.OnChange(self.Checked)
+        end
+    end
+end
+
 local CWindow = {
     ID = 0,
     Visible = true,
@@ -265,6 +319,12 @@ window:AddComponent(button1)
 window:AddComponent(button2)
 window:AddComponent(button3)
 window:AddComponent(button4)
+
+local check1 = CCheckbox.new({ 205, 50 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
+local check2 = CCheckbox.new({ 205, 80 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
+
+window:AddComponent(check1)
+window:AddComponent(check2)
 
 local function OnDraw()
     window:Draw()
