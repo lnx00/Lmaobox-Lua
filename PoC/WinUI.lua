@@ -137,8 +137,8 @@ local function RoundedRect(x1, y1, x2, y2, r, color)
     draw.Color(_r, _g, _b, _a)
     draw.FilledRect(x1, y1, x2, y2)
 
-    --[[
-    draw.ColoredCircle(x1 + r, y1 + r, r, _r, _g, _b, _a)
+    
+    --[[draw.ColoredCircle(x1 + r, y1 + r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x2 - r, y1 + r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x1 + r, y2 - r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x2 - r, y2 - r, r, _r, _g, _b, _a)
@@ -232,10 +232,12 @@ function CCheckbox:Draw(ctx)
     local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
     local w, h = 20, 20
     local x2, y2 = x1 + w, y1 + h
+    local tw, th = draw.GetTextSize(self.Text)
+    local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
 
     -- Checkmark
     local chkColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
-    if Input.MouseInBounds(x1, y1, x2, y2) then
+    if mib then
         if input.IsButtonDown(MOUSE_LEFT) then
             chkColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
         else
@@ -249,11 +251,77 @@ function CCheckbox:Draw(ctx)
     -- Text
     draw.SetFont(Fonts.Body)
     SetColor(Colors.Text.Primary)
-    local tw, th = draw.GetTextSize(self.Text)
     draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
 
     -- Interaction
-    if Input.MouseInBounds(x1, y1, x2, y2) then
+    if mib then
+        if mouseHelper:Released() then
+            self.Checked = not self.Checked
+            self.OnChange(self.Checked)
+        end
+    end
+end
+
+local CSwitch = {
+    ID = 0,
+    Visible = true,
+    Pos = { 300, 500 },
+    Text = "Switch",
+    Value = false,
+    Checked = false,
+    OnChange = function(v) end,
+    Flags = Flags.None
+}
+CSwitch.__index = CSwitch
+
+function CSwitch.new(pos, text, value, onChange, flags)
+    local self = setmetatable({}, CSwitch)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Pos = pos or { 300, 500 }
+    self.Text = text or "Switch"
+    self.Value = value or false
+    self.Checked = value or false
+    self.OnChange = onChange or function(v) end
+    self.Flags = flags or Flags.None
+
+    return self
+end
+
+function CSwitch:Draw(ctx)
+    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local w, h = 40, 20
+    local x2, y2 = x1 + w, y1 + h
+    local tw, th = draw.GetTextSize(self.Text)
+    local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
+
+    -- Background
+    local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
+    if mib then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
+        else
+            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
+        end
+    end
+
+    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlStrongStroke.Default)
+    RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 15, bgColor)
+
+    -- Switch
+    if self.Checked then
+        draw.ColoredCircle(x2 - 10, y1 + 10, 7, 0, 0, 0, 255)
+    else
+        draw.ColoredCircle(x1 + 10, y1 + 10, 7, 204, 204, 204, 255)
+    end
+
+    -- Text
+    draw.SetFont(Fonts.Body)
+    SetColor(Colors.Text.Primary)
+    draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
+
+    -- Interaction
+    if mib then
         if mouseHelper:Released() then
             self.Checked = not self.Checked
             self.OnChange(self.Checked)
@@ -299,8 +367,8 @@ function CWindow:Draw()
     draw.FilledRect(x1, y1, x2, y2)
 
     -- Content frame (TODO: Move to a component)
-    local lP = 200 + Style.FramePadding
-    RoundedRect(x1 + lP, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
+    local lp = 200 + Style.FramePadding
+    RoundedRect(x1 + lp, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
 
     -- Title
     draw.SetFont(Fonts.Title)
@@ -310,7 +378,7 @@ function CWindow:Draw()
     -- Text
     SetColor(Colors.Text.Primary)
     draw.SetFont(Fonts.Subtitle)
-    draw.Text(x1 + lP + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
+    draw.Text(x1 + lp + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
 
     -- Draw components
     local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize } }
@@ -332,11 +400,15 @@ window:AddComponent(button2)
 window:AddComponent(button3)
 window:AddComponent(button4)
 
-local check1 = CCheckbox.new({ 205, 50 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
-local check2 = CCheckbox.new({ 205, 80 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
+local check1 = CCheckbox.new({ 215, 50 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
+local check2 = CCheckbox.new({ 215, 80 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
 
 window:AddComponent(check1)
 window:AddComponent(check2)
+
+local switch1 = CSwitch.new({ 215, 110 }, "Switch 1", false, function(value) print("Switch 1 changed to " .. tostring(value)) end)
+
+window:AddComponent(switch1)
 
 local function OnDraw()
     window:Draw()
