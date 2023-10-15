@@ -5,8 +5,9 @@
 
 ---@type lnxLib
 local lnxLib = require("lnxLib")
+local Input = lnxLib.Utils.Input
 
----@alias Context { Pos: number[] }
+---@alias Context { Pos: integer[], Size: integer[] }
 
 --[[ Constants ]]
 
@@ -24,6 +25,7 @@ local FontWeight = {
 local Fonts = {
     Caption = draw.CreateFont("Segoe UI Variable Small", 16, FontWeight.Regular),
     Body = draw.CreateFont("Segoe UI Variable Text", 20, FontWeight.Regular),
+    BodyStrong = draw.CreateFont("Segoe UI Variable Text", 20, FontWeight.SemiBold),
     Subtitle = draw.CreateFont("Segoe UI Variable Display", 28, FontWeight.SemiBold),
     Title = draw.CreateFont("Segoe UI Variable Display", 36, FontWeight.SemiBold),
     Display = draw.CreateFont("Segoe UI Variable Display", 92, FontWeight.SemiBold),
@@ -45,6 +47,13 @@ local Colors = {
         Secondary = { 166, 216, 255 }, -- Rest or Hover
         Tertiary = { 118, 185, 237 }, -- Pressed only
         Disabled = { 113, 113, 113 } -- Disabled only
+    },
+
+    -- Used for text on accent colored controls or fills
+    TextOnAccent = {
+        Primary = { 0, 0, 0 }, -- Rest or Hover
+        Secondary = { 16, 16, 16 }, -- Pressed only
+        Disabled = { 150, 150, 150 }, -- Disabled only
     },
 
     -- Fill used for standard controls
@@ -88,6 +97,12 @@ local Colors = {
     }
 }
 
+local Flags = {
+    None = 0,
+    Accent = 1 << 0,
+    Strong = 1 << 1,
+}
+
 --[[ Vars ]]
 
 local currentId = 0
@@ -95,7 +110,7 @@ local currentId = 0
 local Style = {
     HeaderSize = 50,
     FramePadding = 10,
-    ItemPadding = 4,
+    ItemPadding = 5,
 }
 
 --[[ Utils ]]
@@ -112,15 +127,17 @@ end
 
 local function RoundedRect(x1, y1, x2, y2, r, color)
     local _r, _g, _b, _a = color[1], color[2], color[3], color[4] or 255
-
     draw.Color(_r, _g, _b, _a)
+    draw.FilledRect(x1, y1, x2, y2)
+
+    --[[
     draw.ColoredCircle(x1 + r, y1 + r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x2 - r, y1 + r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x1 + r, y2 - r, r, _r, _g, _b, _a)
     draw.ColoredCircle(x2 - r, y2 - r, r, _r, _g, _b, _a)
 
     draw.FilledRect(x1 + r, y1, x2 - r, y2)
-    draw.FilledRect(x1, y1 + r, x2, y2 - r)
+    draw.FilledRect(x1, y1 + r, x2, y2 - r)]]
 end
 
 --[[ Components ]]
@@ -131,11 +148,12 @@ local CButton = {
     Pos = { 300, 500 },
     Size = { 160, 32 },
     Text = "Button",
-    OnClick = function() end
+    OnClick = function() end,
+    Flags = Flags.None
 }
 CButton.__index = CButton
 
-function CButton.new(pos, size, text, onClick)
+function CButton.new(pos, size, text, onClick, flags)
     local self = setmetatable({}, CButton)
     self.ID = GetUniqueId()
     self.Visible = true
@@ -143,6 +161,7 @@ function CButton.new(pos, size, text, onClick)
     self.Size = size or { 160, 32 }
     self.Text = text or "Button"
     self.OnClick = onClick or function() end
+    self.Flags = flags or Flags.None
 
     return self
 end
@@ -152,12 +171,26 @@ function CButton:Draw(ctx)
     local w, h = self.Size[1], self.Size[2]
     local x2, y2 = x1 + w, y1 + h
 
+    -- Options
+    local accent = self.Flags & Flags.Accent ~= 0
+    local strong = self.Flags & Flags.Strong ~= 0
+
+    -- Interaction
+    local bgColor = accent and Colors.AccentFill.Default or Colors.ControlFill.Default
+    if Input.MouseInBounds(x1, y1, x2, y2) then
+        if input.IsButtonDown(MOUSE_LEFT) then
+            bgColor = accent and Colors.AccentFill.Tertiary or Colors.ControlFill.Tertiary
+        else
+            bgColor = accent and Colors.AccentFill.Secondary or Colors.ControlFill.Secondary
+        end
+    end
+
     -- Background
-    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlFill.Default)
+    RoundedRect(x1, y1, x2, y2, 7, bgColor)
 
     -- Text
-    draw.SetFont(Fonts.Body)
-    SetColor(Colors.Text.Primary)
+    draw.SetFont(strong and Fonts.BodyStrong or Fonts.Body)
+    SetColor(accent and Colors.TextOnAccent.Primary or Colors.Text.Primary)
     local tw, th = draw.GetTextSize(self.Text)
     draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
 end
@@ -224,12 +257,14 @@ end
 
 local window = CWindow.new({ 100, 120 }, { 900, 500 }, "WinUi Demo")
 local button1 = CButton.new({ 0, 0 }, { 190, 32 }, "Aimbot", function() print("Button 1 clicked") end)
-local button2 = CButton.new({ 0, 36 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
-local button3 = CButton.new({ 0, 72 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
+local button2 = CButton.new({ 0, 37 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
+local button3 = CButton.new({ 0, 74 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
+local button4 = CButton.new({ 0, 405 }, { 190, 32 }, "Exit", function() print("Button 4 clicked") end, Flags.Accent | Flags.Strong)
 
 window:AddComponent(button1)
 window:AddComponent(button2)
 window:AddComponent(button3)
+window:AddComponent(button4)
 
 local function OnDraw()
     window:Draw()
