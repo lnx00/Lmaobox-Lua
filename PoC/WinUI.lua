@@ -6,6 +6,7 @@
 ---@type lnxLib
 local lnxLib = require("lnxLib")
 local Input, KeyHelper = lnxLib.Utils.Input, lnxLib.Utils.KeyHelper
+local Textures = lnxLib.UI.Textures
 
 ---@alias Context { Rect: number[] }
 
@@ -115,10 +116,13 @@ local Flags = {
 local mouseHelper = KeyHelper.new(MOUSE_LEFT)
 local currentId = 0
 
+local circle = Textures.Circle(16, { 255, 255, 255, 255 })
+
 local Style = {
     HeaderSize = 50,
     FramePadding = 10,
     ItemPadding = 5,
+    Circles = true
 }
 
 --[[ Utils ]]
@@ -133,18 +137,25 @@ local function SetColor(color)
     draw.Color(color[1], color[2], color[3], color[4] or 255)
 end
 
+local function DrawCircle(x, y, r)
+    draw.TexturedRect(circle, x - r, y - r, x + r, y + r)
+end
+
 local function RoundedRect(x1, y1, x2, y2, r, color)
     local _r, _g, _b, _a = color[1], color[2], color[3], color[4] or 255
     draw.Color(_r, _g, _b, _a)
-    draw.FilledRect(x1, y1, x2, y2)
-    
-    --[[draw.ColoredCircle(x1 + r, y1 + r, r, _r, _g, _b, _a)
-    draw.ColoredCircle(x2 - r, y1 + r, r, _r, _g, _b, _a)
-    draw.ColoredCircle(x1 + r, y2 - r, r, _r, _g, _b, _a)
-    draw.ColoredCircle(x2 - r, y2 - r, r, _r, _g, _b, _a)
 
-    draw.FilledRect(x1 + r, y1, x2 - r, y2)
-    draw.FilledRect(x1, y1 + r, x2, y2 - r)]]
+    if Style.Circles then
+        DrawCircle(x1 + r, y1 + r, r)
+        DrawCircle(x2 - r, y1 + r, r)
+        DrawCircle(x1 + r, y2 - r, r)
+        DrawCircle(x2 - r, y2 - r, r)
+    
+        draw.FilledRect(x1 + r, y1, x2 - r, y2)
+        draw.FilledRect(x1, y1 + r, x2, y2 - r)
+    else
+        draw.FilledRect(x1, y1, x2, y2)
+    end
 end
 
 --[[ Components ]]
@@ -543,5 +554,12 @@ local function OnDraw()
     window:Draw()
 end
 
+local function OnUnload()
+    draw.DeleteTexture(circle)
+end
+
 callbacks.Unregister("Draw", "LNX.ModernUI.Draw")
 callbacks.Register("Draw", "LNX.ModernUI.Draw", OnDraw)
+
+callbacks.Unregister("Unload", "LNX.ModernUI.Unload")
+callbacks.Register("Unload", "LNX.ModernUI.Unload", OnUnload)
