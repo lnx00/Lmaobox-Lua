@@ -227,6 +227,36 @@ function CCard:Draw(ctx)
     end
 end
 
+local CLabel = {
+    ID = 0,
+    Visible = true,
+    Pos = { 0, 0 },
+    Text = "Label",
+    Font = Fonts.Body,
+    Flags = Flags.None
+}
+CLabel.__index = CLabel
+
+function CLabel.new(pos, text, font, flags)
+    local self = setmetatable({}, CLabel)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Pos = pos or { 0, 0 }
+    self.Text = text or "Label"
+    self.Font = font or Fonts.Body
+    self.Flags = flags or Flags.None
+
+    return self
+end
+
+function CLabel:Draw(ctx)
+    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+
+    draw.SetFont(self.Font)
+    SetColor(Colors.Text.Primary)
+    draw.Text(x1, y1, self.Text)
+end
+
 local CButton = {
     ID = 0,
     Visible = true,
@@ -566,6 +596,14 @@ local switch2 = CSwitch.new({ 0, 0 }, "Allow circles", Style.Circles, function(v
 
 card1:AddComponent(switch1)
 card2:AddComponent(switch2)
+
+local label1 = CLabel.new({ 0, 30 }, "This is a caption.", Fonts.Caption)
+local label2 = CLabel.new({ 0, 50 }, "This is a body.", Fonts.Body)
+local label3 = CLabel.new({ 0, 70 }, "This is a subtitle.", Fonts.Subtitle)
+
+card2:AddComponent(label1)
+card2:AddComponent(label2)
+card2:AddComponent(label3)
 
 local function OnDraw()
     window:Draw()
