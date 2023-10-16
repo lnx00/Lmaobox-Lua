@@ -178,7 +178,8 @@ end
 
 function CCard:Draw(ctx)
     local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
-    local w, h = self.Size[1], self.Size[2]
+    local w = (self.Size[1] <= 0) and (ctx.Size[1] - self.Pos[1] + self.Size[1]) or self.Size[1]
+    local h = (self.Size[2] <= 0) and (ctx.Size[2] - self.Pos[2] + self.Size[2]) or self.Size[2]
     local x2, y2 = x1 + w, y1 + h
 
     -- Background
@@ -439,7 +440,7 @@ function CWindow:Draw()
     --draw.Text(x1 + lp + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
 
     -- Draw components
-    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize } }
+    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize }, Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
     for _, component in ipairs(self.Components) do
         component:Draw(ctx)
     end
@@ -448,7 +449,7 @@ end
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 450, 120 }, { 900, 500 }, "WinUi Demo")
-local card1 = CCard.new({ 215, 0 }, { 400, 300 }, "Card 1")
+local card1 = CCard.new({ 215, 0 }, { 0, 0 }, "Card 1")
 
 window:AddComponent(card1)
 
