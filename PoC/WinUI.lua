@@ -7,7 +7,7 @@
 local lnxLib = require("lnxLib")
 local Input, KeyHelper = lnxLib.Utils.Input, lnxLib.Utils.KeyHelper
 
----@alias Context { Pos: integer[], Size: integer[] }
+---@alias Context { Rect: number[] }
 
 --[[ Constants ]]
 
@@ -148,6 +148,60 @@ end
 
 --[[ Components ]]
 
+local CCard = {
+    ID = 0,
+    Visible = true,
+    Pos = { 300, 500 },
+    Size = { 160, 32 },
+    Name = nil,
+    Flags = Flags.None,
+    Components = {}
+}
+CCard.__index = CCard
+
+function CCard.new(pos, size, name, flags)
+    local self = setmetatable({}, CCard)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Pos = pos or { 300, 500 }
+    self.Size = size or { 160, 32 }
+    self.Name = name or nil
+    self.Flags = flags or Flags.None
+    self.Components = {}
+
+    return self
+end
+
+function CCard:AddComponent(component)
+    table.insert(self.Components, component)
+end
+
+function CCard:Draw(ctx)
+    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local w, h = self.Size[1], self.Size[2]
+    local x2, y2 = x1 + w, y1 + h
+
+    -- Background
+    local bgColor = Colors.CardBackground.Secondary
+    RoundedRect(x1, y1, x2, y2, 10, bgColor)
+
+    -- Title
+    local yOffset = 0
+    if self.Name then
+        draw.SetFont(Fonts.Subtitle)
+        SetColor(Colors.Text.Primary)
+        local tw, th = draw.GetTextSize(self.Name)
+        draw.Text(x1 + Style.FramePadding, y1 + Style.FramePadding, self.Name)
+        yOffset = th + Style.FramePadding
+    end
+
+    -- Draw components
+    local ctx2 = { Pos = { x1 + Style.FramePadding, y1 + yOffset + Style.FramePadding } }
+    for _, component in ipairs(self.Components) do
+        component:Draw(ctx2)
+    end
+end
+
 local CButton = {
     ID = 0,
     Visible = true,
@@ -236,13 +290,15 @@ function CCheckbox:Draw(ctx)
     local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
     local w, h = 20, 20
     local x2, y2 = x1 + w, y1 + h
+
+    draw.SetFont(Fonts.Body)
     local tw, th = draw.GetTextSize(self.Text)
     local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
 
     -- Checkmark
     local chkColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
     if mib then
-        if input.IsButtonDown(MOUSE_LEFT) then
+        if mouseHelper:Down() then
             chkColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
         else
             chkColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
@@ -253,7 +309,6 @@ function CCheckbox:Draw(ctx)
     RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 7, chkColor)
 
     -- Text
-    draw.SetFont(Fonts.Body)
     SetColor(Colors.Text.Primary)
     draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
 
@@ -294,6 +349,8 @@ function CSwitch:Draw(ctx)
     local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
     local w, h = 40, 20
     local x2, y2 = x1 + w, y1 + h
+
+    draw.SetFont(Fonts.Body)
     local tw, th = draw.GetTextSize(self.Text)
     local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
 
@@ -318,7 +375,6 @@ function CSwitch:Draw(ctx)
     end
 
     -- Text
-    draw.SetFont(Fonts.Body)
     SetColor(Colors.Text.Primary)
     draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
 
@@ -369,8 +425,8 @@ function CWindow:Draw()
     draw.FilledRect(x1, y1, x2, y2)
 
     -- Content frame (TODO: Move to a component)
-    local lp = 200 + Style.FramePadding
-    RoundedRect(x1 + lp, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
+    --local lp = 200 + Style.FramePadding
+    --RoundedRect(x1 + lp, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
 
     -- Title
     draw.SetFont(Fonts.Title)
@@ -378,9 +434,9 @@ function CWindow:Draw()
     draw.Text(x1 + 2 * Style.FramePadding, y1 + Style.FramePadding, self.Title)
 
     -- Text
-    SetColor(Colors.Text.Primary)
-    draw.SetFont(Fonts.Subtitle)
-    draw.Text(x1 + lp + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
+    --SetColor(Colors.Text.Primary)
+    --draw.SetFont(Fonts.Subtitle)
+    --draw.Text(x1 + lp + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
 
     -- Draw components
     local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize } }
@@ -392,6 +448,10 @@ end
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 450, 120 }, { 900, 500 }, "WinUi Demo")
+local card1 = CCard.new({ 215, 0 }, { 400, 300 }, "Card 1")
+
+window:AddComponent(card1)
+
 local button1 = CButton.new({ 0, 0 }, { 190, 32 }, "Aimbot", function() print("Button 1 clicked") end)
 local button2 = CButton.new({ 0, 37 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
 local button3 = CButton.new({ 0, 74 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
@@ -402,15 +462,15 @@ window:AddComponent(button2)
 window:AddComponent(button3)
 window:AddComponent(button4)
 
-local check1 = CCheckbox.new({ 215, 50 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
-local check2 = CCheckbox.new({ 215, 80 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
+local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
+local check2 = CCheckbox.new({ 0, 30 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
 
-window:AddComponent(check1)
-window:AddComponent(check2)
+card1:AddComponent(check1)
+card1:AddComponent(check2)
 
-local switch1 = CSwitch.new({ 215, 110 }, "Enable input", input.IsMouseInputEnabled(), function(value) input.SetMouseInputEnabled(value) end)
+local switch1 = CSwitch.new({ 0, 60 }, "Enable input", input.IsMouseInputEnabled(), function(value) input.SetMouseInputEnabled(value) end)
 
-window:AddComponent(switch1)
+card1:AddComponent(switch1)
 
 local function OnDraw()
     window:Draw()
