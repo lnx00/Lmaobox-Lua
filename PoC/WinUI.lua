@@ -141,6 +141,7 @@ local function DrawCircle(x, y, r)
     draw.TexturedRect(circle, x - r, y - r, x + r, y + r)
 end
 
+-- TODO: Remove color param
 local function RoundedRect(x1, y1, x2, y2, r, color)
     local _r, _g, _b, _a = color[1], color[2], color[3], color[4] or 255
     draw.Color(_r, _g, _b, _a)
@@ -150,12 +151,20 @@ local function RoundedRect(x1, y1, x2, y2, r, color)
         DrawCircle(x2 - r, y1 + r, r)
         DrawCircle(x1 + r, y2 - r, r)
         DrawCircle(x2 - r, y2 - r, r)
-    
+
         draw.FilledRect(x1 + r, y1, x2 - r, y2)
         draw.FilledRect(x1, y1 + r, x2, y2 - r)
     else
         draw.FilledRect(x1, y1, x2, y2)
     end
+end
+
+-- Draw a horizontal rectangle with rounded corners left and right
+local function RoundedRectH(x1, y1, x2, y2)
+    local r = (y2 - y1) // 2
+    DrawCircle(x1 + r, y1 + r, r)
+    DrawCircle(x2 - r, y1 + r, r)
+    draw.FilledRect(x1 + r, y1, x2 - r, y2)
 end
 
 --[[ Components ]]
@@ -318,8 +327,14 @@ function CCheckbox:Draw(ctx)
         end
     end
 
-    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlStrongStroke.Default)
-    RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 7, chkColor)
+    if self.Checked then
+        -- No border
+        RoundedRect(x1, y1, x2, y2, 6, chkColor)
+    else
+        -- Border
+        RoundedRect(x1, y1, x2, y2, 6, Colors.ControlStrongStroke.Default)
+        RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6, chkColor)
+    end
 
     -- Text
     SetColor(Colors.Text.Primary)
@@ -371,20 +386,31 @@ function CSwitch:Draw(ctx)
     local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
     if mib then
         if input.IsButtonDown(MOUSE_LEFT) then
-            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
+            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
         else
-            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
+            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
         end
     end
 
-    RoundedRect(x1, y1, x2, y2, 7, Colors.ControlStrongStroke.Default)
-    RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 15, bgColor)
-
     -- Switch
     if self.Checked then
-        draw.ColoredCircle(x2 - 10, y1 + 10, 7, 0, 0, 0, 255)
+        -- No border
+        SetColor(bgColor)
+        RoundedRectH(x1, y1, x2, y2)
+
+        -- Knob
+        draw.Color(0, 0, 0, 255)
+        DrawCircle(x2 - 10, y1 + 10, 6)
     else
-        draw.ColoredCircle(x1 + 10, y1 + 10, 7, 204, 204, 204, 255)
+        -- Border
+        SetColor(Colors.ControlStrongStroke.Default)
+        RoundedRectH(x1, y1, x2, y2)
+        SetColor(bgColor)
+        RoundedRectH(x1 + 1, y1 + 1, x2 - 1, y2 - 1)
+
+        -- Knob
+        draw.Color(204, 204, 204, 255)
+        DrawCircle(x1 + 10, y1 + 10, 6)
     end
 
     -- Text
@@ -499,19 +525,10 @@ function CWindow:Draw()
     SetColor(Colors.SolidBackground.Base)
     draw.FilledRect(x1, y1, x2, y2)
 
-    -- Content frame (TODO: Move to a component)
-    --local lp = 200 + Style.FramePadding
-    --RoundedRect(x1 + lp, y1 + Style.HeaderSize, x2 - Style.FramePadding, y2 - Style.FramePadding, 15, Colors.CardBackground.Secondary)
-
     -- Title
     draw.SetFont(Fonts.Title)
     SetColor(Colors.Text.Secondary)
     draw.Text(x1 + 2 * Style.FramePadding, y1 + Style.FramePadding, self.Title)
-
-    -- Text
-    --SetColor(Colors.Text.Primary)
-    --draw.SetFont(Fonts.Subtitle)
-    --draw.Text(x1 + lp + 2 * Style.FramePadding, y1 + Style.HeaderSize + Style.FramePadding, "Subtitle")
 
     -- Draw components
     local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize }, Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
