@@ -161,6 +161,11 @@ end
 
 -- Draw a horizontal rectangle with rounded corners left and right
 local function RoundedRectH(x1, y1, x2, y2)
+    if not Style.Circles then
+        draw.FilledRect(x1, y1, x2, y2)
+        return
+    end
+
     local r = (y2 - y1) // 2
     DrawCircle(x1 + r, y1 + r, r)
     DrawCircle(x2 - r, y1 + r, r)
@@ -258,6 +263,11 @@ function CButton:Draw(ctx)
     local accent = self.Flags & Flags.Accent ~= 0
     local strong = self.Flags & Flags.Strong ~= 0
 
+    -- Interaction
+    if mib and mouseHelper:Released() then
+        self.OnClick()
+    end
+
     -- Background
     local bgColor = accent and Colors.AccentFill.Default or Colors.ControlFill.Default
     if mib then
@@ -275,11 +285,6 @@ function CButton:Draw(ctx)
     SetColor(accent and Colors.TextOnAccent.Primary or Colors.Text.Primary)
     local tw, th = draw.GetTextSize(self.Text)
     draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
-
-    -- Interaction
-    if mib and mouseHelper:Released() then
-        self.OnClick()
-    end
 end
 
 local CCheckbox = {
@@ -317,34 +322,34 @@ function CCheckbox:Draw(ctx)
     local tw, th = draw.GetTextSize(self.Text)
     local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
 
-    -- Checkmark
-    local chkColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
-    if mib then
-        if mouseHelper:Down() then
-            chkColor = self.Checked and Colors.AccentFill.Tertiary or Colors.AccentFill.Secondary
-        else
-            chkColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
-        end
-    end
-
-    if self.Checked then
-        -- No border
-        RoundedRect(x1, y1, x2, y2, 6, chkColor)
-    else
-        -- Border
-        RoundedRect(x1, y1, x2, y2, 6, Colors.ControlStrongStroke.Default)
-        RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6, chkColor)
-    end
-
-    -- Text
-    SetColor(Colors.Text.Primary)
-    draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
-
     -- Interaction
     if mib and mouseHelper:Released() then
         self.Checked = not self.Checked
         self.OnChange(self.Checked)
     end
+
+    -- Checkmark
+    local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
+    if mib then
+        if mouseHelper:Down() then
+            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
+        else
+            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
+        end
+    end
+
+    if self.Checked then
+        -- No border
+        RoundedRect(x1, y1, x2, y2, 6, bgColor)
+    else
+        -- Border
+        RoundedRect(x1, y1, x2, y2, 6, Colors.ControlStrongStroke.Default)
+        RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6, bgColor)
+    end
+
+    -- Text
+    SetColor(Colors.Text.Primary)
+    draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
 end
 
 local CSwitch = {
@@ -382,10 +387,16 @@ function CSwitch:Draw(ctx)
     local tw, th = draw.GetTextSize(self.Text)
     local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
 
+    -- Interaction
+    if mib and mouseHelper:Released() then
+        self.Checked = not self.Checked
+        self.OnChange(self.Checked)
+    end
+
     -- Background
     local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
     if mib then
-        if input.IsButtonDown(MOUSE_LEFT) then
+        if mouseHelper:Down() then
             bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
         else
             bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
@@ -416,14 +427,6 @@ function CSwitch:Draw(ctx)
     -- Text
     SetColor(Colors.Text.Primary)
     draw.Text(x1 + w + Style.ItemPadding, y1 + h // 2 - th // 2, self.Text)
-
-    -- Interaction
-    if mib then
-        if mouseHelper:Released() then
-            self.Checked = not self.Checked
-            self.OnChange(self.Checked)
-        end
-    end
 end
 
 local CNavView = {
@@ -545,16 +548,9 @@ local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Card 2")
 local navView = CNavView.new({ card1, card2 })
 
 window:AddComponent(navView)
---window:AddComponent(card1)
 
-local button1 = CButton.new({ 0, 0 }, { 190, 32 }, "Aimbot", function() print("Button 1 clicked") end)
-local button2 = CButton.new({ 0, 37 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
-local button3 = CButton.new({ 0, 74 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
 local button4 = CButton.new({ 0, 405 }, { 190, 32 }, "Reload", function() LoadScript(GetScriptName()) end, Flags.Accent)
 
---window:AddComponent(button1)
---window:AddComponent(button2)
---window:AddComponent(button3)
 window:AddComponent(button4)
 
 local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
@@ -564,8 +560,10 @@ card1:AddComponent(check1)
 card1:AddComponent(check2)
 
 local switch1 = CSwitch.new({ 0, 60 }, "Enable input", input.IsMouseInputEnabled(), function(value) input.SetMouseInputEnabled(value) end)
+local switch2 = CSwitch.new({ 0, 0 }, "Allow circles", Style.Circles, function(value) Style.Circles = value end)
 
 card1:AddComponent(switch1)
+card2:AddComponent(switch2)
 
 local function OnDraw()
     window:Draw()
