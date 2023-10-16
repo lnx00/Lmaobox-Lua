@@ -1,6 +1,7 @@
 --[[
     WinUI 3 Concept for Lmaobox
     Author: LNX (github.com/lnx00)
+    Credits: Microsoft WinUI 3 (https://learn.microsoft.com/en-us/windows/apps/winui/winui3/)
 ]]
 
 ---@type lnxLib
@@ -80,6 +81,14 @@ local Colors = {
         Secondary = { 109, 169, 216 }, -- Hover
         Tertiary = { 100, 154, 195 }, -- Pressed
         Disabled = { 67, 67, 67 }, -- Disabled
+    },
+
+    -- USed for gradient stops in elevation borders, and for control states.
+    ControlStroke = {
+        Default = { 48, 48, 48 }, -- Used in Control Elevation Brushes. Pressed or Disabled
+        Secondary = { 53, 53, 53 }, -- Used in Control Elevation Brushes
+        OnAccentDefault = { 49, 49, 49 }, -- Used in Control Elevation Brushes. Pressed or Disabled
+        OnAccentSecondary = { 28, 28, 28 }, -- Used in Control Elevation Brushes
     },
 
     -- Used for control strokes that must meet contrast ratio requirements of 3:1
@@ -309,11 +318,16 @@ function CButton:Draw(ctx)
         end
     end
 
+    if not plain then
+        SetColor(Colors.ControlStroke.Secondary)
+        RoundedRect(x1, y1, x2, y2, 6)
+    end
+
     SetColor(bgColor)
     if plain and not mib then
         SetColor(Colors.ControlAltFill.Transparent)
     end
-    RoundedRect(x1, y1, x2, y2, 6)
+    RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6)
 
     -- Text
     draw.SetFont(strong and Fonts.BodyStrong or Fonts.Body)
@@ -585,8 +599,8 @@ end
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 450, 120 }, { 900, 500 }, "WinUi Demo")
-local card1 = CCard.new({ 0, 0 }, { 0, 0 }, "Page 1")
-local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Page 2")
+local card1 = CCard.new({ 0, 0 }, { 0, 0 }, "Aimbot")
+local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Visuals")
 local navView = CNavView.new({ card1, card2 })
 
 window:AddComponent(navView)
