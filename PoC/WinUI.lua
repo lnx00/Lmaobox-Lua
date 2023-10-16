@@ -107,6 +107,7 @@ local Flags = {
     None = 0,
     Accent = 1 << 0,
     Strong = 1 << 1,
+    LeftAlign = 1 << 2,
 }
 
 --[[ Vars ]]
@@ -388,6 +389,68 @@ function CSwitch:Draw(ctx)
     end
 end
 
+local CNavView = {
+    ID = 0,
+    Visible = true,
+    Flags = Flags.None,
+    Views = {},
+    CurrentView = nil,
+    _Buttons = {},
+    _Frame = nil,
+    _CurrentY = 0, -- TODO: This is a hack
+}
+CNavView.__index = CNavView
+
+function CNavView.new(views, flags)
+    local self = setmetatable({}, CNavView)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Flags = flags or Flags.None
+    self.Views = views or {}
+    self.CurrentView = views and views[1] or nil
+    self._Buttons = {}
+    self._Frame = CCard.new({ 0, 0 }, { 0, 0 }) -- TODO: Use a frame component
+
+    for _, view in ipairs(self.Views) do
+        self:AddView(view)
+    end
+
+    return self
+end
+
+function CNavView:Show(view)
+    print("Switched to: " .. view.Name)
+    self.CurrentView = view
+end
+
+function CNavView:AddView(view)
+    assert(view.Name, "View must have a name")
+
+    local btn = CButton.new({ 0, self._CurrentY }, { 190, 32 }, view.Name, function() self:Show(view) end)
+    table.insert(self._Buttons, btn)
+
+    self._CurrentY = self._CurrentY + 32 + Style.ItemPadding
+    --table.insert(self.Views, view)
+end
+
+function CNavView:Draw(ctx)
+    local x1, y1 = ctx.Pos[1], ctx.Pos[2]
+    local w, h = ctx.Size[1], ctx.Size[2]
+    local x2, y2 = x1 + w, y1 + h
+
+    -- Buttons
+    for _, btn in ipairs(self._Buttons) do
+        -- TODO: Button offset
+        btn:Draw(ctx)
+    end
+
+    -- View
+    if self.CurrentView then
+        local viewCtx = { Pos = { x1 + 200 + Style.FramePadding, y1 }, Size = { w - 200 - Style.FramePadding, h } }
+        self.CurrentView:Draw(viewCtx)
+    end
+end
+
 local CWindow = {
     ID = 0,
     Visible = true,
@@ -449,18 +512,21 @@ end
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 450, 120 }, { 900, 500 }, "WinUi Demo")
-local card1 = CCard.new({ 215, 0 }, { 0, 0 }, "Card 1")
+local card1 = CCard.new({ 0, 0 }, { 0, 0 }, "Card 1")
+local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Card 2")
+local navView = CNavView.new({ card1, card2 })
 
-window:AddComponent(card1)
+window:AddComponent(navView)
+--window:AddComponent(card1)
 
 local button1 = CButton.new({ 0, 0 }, { 190, 32 }, "Aimbot", function() print("Button 1 clicked") end)
 local button2 = CButton.new({ 0, 37 }, { 190, 32 }, "ESP", function() print("Button 2 clicked") end)
 local button3 = CButton.new({ 0, 74 }, { 190, 32 }, "Misc", function() print("Button 3 clicked") end)
 local button4 = CButton.new({ 0, 405 }, { 190, 32 }, "Reload", function() LoadScript(GetScriptName()) end, Flags.Accent)
 
-window:AddComponent(button1)
-window:AddComponent(button2)
-window:AddComponent(button3)
+--window:AddComponent(button1)
+--window:AddComponent(button2)
+--window:AddComponent(button3)
 window:AddComponent(button4)
 
 local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
