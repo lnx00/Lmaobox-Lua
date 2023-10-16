@@ -105,10 +105,11 @@ local Colors = {
 }
 
 local Flags = {
-    None = 0,
-    Accent = 1 << 0,
-    Strong = 1 << 1,
-    LeftAlign = 1 << 2,
+    None = 0, -- Default
+    Accent = 1 << 0, -- Accent color
+    Strong = 1 << 1, -- Bold text
+    LeftAlign = 1 << 2, -- Left text align
+    Plain = 1 << 3, -- No background
 }
 
 --[[ Vars ]]
@@ -290,6 +291,8 @@ function CButton:Draw(ctx)
     -- Options
     local accent = self.Flags & Flags.Accent ~= 0
     local strong = self.Flags & Flags.Strong ~= 0
+    local leftA = self.Flags & Flags.LeftAlign ~= 0
+    local plain = self.Flags & Flags.Plain ~= 0
 
     -- Interaction
     if mib and mouseHelper:Released() then
@@ -307,13 +310,20 @@ function CButton:Draw(ctx)
     end
 
     SetColor(bgColor)
-    RoundedRect(x1, y1, x2, y2, 7)
+    if plain and not mib then
+        SetColor(Colors.ControlAltFill.Transparent)
+    end
+    RoundedRect(x1, y1, x2, y2, 6)
 
     -- Text
     draw.SetFont(strong and Fonts.BodyStrong or Fonts.Body)
     SetColor(accent and Colors.TextOnAccent.Primary or Colors.Text.Primary)
     local tw, th = draw.GetTextSize(self.Text)
-    draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
+    if leftA then
+        draw.Text(x1 + h, y1 + h // 2 - th // 2, self.Text)
+    else
+        draw.Text(x1 + w // 2 - tw // 2, y1 + h // 2 - th // 2, self.Text)
+    end
 end
 
 local CCheckbox = {
@@ -498,7 +508,7 @@ end
 function CNavView:AddView(view)
     assert(view.Name, "View must have a name")
 
-    local btn = CButton.new({ 0, self._CurrentY }, { 190, 32 }, view.Name, function() self:Show(view) end)
+    local btn = CButton.new({ 0, self._CurrentY }, { 190, 32 }, view.Name, function() self:Show(view) end, Flags.LeftAlign | Flags.Plain)
     table.insert(self._Buttons, btn)
 
     self._CurrentY = self._CurrentY + 32 + Style.ItemPadding
@@ -575,15 +585,17 @@ end
 --[[ Callbacks ]]
 
 local window = CWindow.new({ 450, 120 }, { 900, 500 }, "WinUi Demo")
-local card1 = CCard.new({ 0, 0 }, { 0, 0 }, "Card 1")
-local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Card 2")
+local card1 = CCard.new({ 0, 0 }, { 0, 0 }, "Page 1")
+local card2 = CCard.new({ 0, 0 }, { 0, 0 }, "Page 2")
 local navView = CNavView.new({ card1, card2 })
 
 window:AddComponent(navView)
 
-local button4 = CButton.new({ 0, 405 }, { 190, 32 }, "Reload", function() LoadScript(GetScriptName()) end, Flags.Accent)
+local button1 = CButton.new({ 0, 405 }, { 190, 32 }, "Reload", function() LoadScript(GetScriptName()) end, Flags.Accent)
+local button2 = CButton.new({ 0, 100 }, { 190, 32 }, "Click me", function() print("Button 2 clicked") end)
 
-window:AddComponent(button4)
+window:AddComponent(button1)
+card2:AddComponent(button2)
 
 local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
 local check2 = CCheckbox.new({ 0, 30 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
