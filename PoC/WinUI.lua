@@ -96,7 +96,7 @@ local Colors = {
 
     -- Solid background colors to place layers, card or controls on
     SolidBackground = {
-        Base = { 32, 32, 32, 254 }, -- Used for the bottom most layer of an experience
+        Base = { 32, 32, 32 }, -- Used for the bottom most layer of an experience
         BaseAlt = { 10, 10, 10 }, -- Used for the bottom most layer of an experience
         Secondary = { 28, 28, 28 }, -- Alternate base color for those who need a darker background color
         Tertiary = { 40, 40, 40 }, -- Content layer color
@@ -141,22 +141,19 @@ local function DrawCircle(x, y, r)
     draw.TexturedRect(circle, x - r, y - r, x + r, y + r)
 end
 
--- TODO: Remove color param
-local function RoundedRect(x1, y1, x2, y2, r, color)
-    local _r, _g, _b, _a = color[1], color[2], color[3], color[4] or 255
-    draw.Color(_r, _g, _b, _a)
-
-    if Style.Circles then
-        DrawCircle(x1 + r, y1 + r, r)
-        DrawCircle(x2 - r, y1 + r, r)
-        DrawCircle(x1 + r, y2 - r, r)
-        DrawCircle(x2 - r, y2 - r, r)
-
-        draw.FilledRect(x1 + r, y1, x2 - r, y2)
-        draw.FilledRect(x1, y1 + r, x2, y2 - r)
-    else
+local function RoundedRect(x1, y1, x2, y2, r)
+    if not Style.Circles then
         draw.FilledRect(x1, y1, x2, y2)
+        return
     end
+
+    DrawCircle(x1 + r, y1 + r, r)
+    DrawCircle(x2 - r, y1 + r, r)
+    DrawCircle(x1 + r, y2 - r, r)
+    DrawCircle(x2 - r, y2 - r, r)
+
+    draw.FilledRect(x1 + r, y1, x2 - r, y2)
+    draw.FilledRect(x1, y1 + r, x2, y2 - r)
 end
 
 -- Draw a horizontal rectangle with rounded corners left and right
@@ -210,7 +207,8 @@ function CCard:Draw(ctx)
 
     -- Background
     local bgColor = Colors.CardBackground.Secondary
-    RoundedRect(x1, y1, x2, y2, 10, bgColor)
+    SetColor(bgColor)
+    RoundedRect(x1, y1, x2, y2, 10)
 
     -- Title
     local yOffset = 0
@@ -278,7 +276,8 @@ function CButton:Draw(ctx)
         end
     end
 
-    RoundedRect(x1, y1, x2, y2, 7, bgColor)
+    SetColor(bgColor)
+    RoundedRect(x1, y1, x2, y2, 7)
 
     -- Text
     draw.SetFont(strong and Fonts.BodyStrong or Fonts.Body)
@@ -340,11 +339,14 @@ function CCheckbox:Draw(ctx)
 
     if self.Checked then
         -- No border
-        RoundedRect(x1, y1, x2, y2, 6, bgColor)
+        SetColor(bgColor)
+        RoundedRect(x1, y1, x2, y2, 6)
     else
         -- Border
-        RoundedRect(x1, y1, x2, y2, 6, Colors.ControlStrongStroke.Default)
-        RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6, bgColor)
+        SetColor(Colors.ControlStrongStroke.Default)
+        RoundedRect(x1, y1, x2, y2, 6)
+        SetColor(bgColor)
+        RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6)
     end
 
     -- Text
@@ -486,7 +488,7 @@ function CNavView:Draw(ctx)
 
     -- View
     if self.CurrentView then
-        local viewCtx = { Pos = { x1 + 200 + Style.FramePadding, y1 }, Size = { w - 200 - Style.FramePadding, h } }
+        local viewCtx = { Pos = { x1 + 190 + Style.FramePadding, y1 }, Size = { w - 190 - Style.FramePadding, h } }
         self.CurrentView:Draw(viewCtx)
     end
 end
@@ -524,9 +526,9 @@ function CWindow:Draw()
     local x2, y2 = x1 + w, y1 + h
 
     -- Background
-    --RoundedRect(x1, y1, x2, y2, 15, Colors.SolidBackground.Base)
     SetColor(Colors.SolidBackground.Base)
-    draw.FilledRect(x1, y1, x2, y2)
+    RoundedRect(x1, y1, x2, y2, 15)
+    --draw.FilledRect(x1, y1, x2, y2)
 
     -- Title
     draw.SetFont(Fonts.Title)
