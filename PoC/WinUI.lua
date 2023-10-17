@@ -462,22 +462,20 @@ function CSwitch:Draw(ctx)
 
     draw.SetFont(Fonts.Body)
     local tw, th = draw.GetTextSize(self.Text)
-    local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
+    local hovered, clicked, active = GetInteraction(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2, self.ID)
 
     -- Interaction
-    if mib and mouseHelper:Released() then
+    if clicked then
         self.Checked = not self.Checked
         self.OnChange(self.Checked)
     end
 
     -- Background
     local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
-    if mib then
-        if mouseHelper:Down() then
-            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
-        else
-            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
-        end
+    if active then
+        bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
+    elseif hovered then
+        bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
     end
 
     -- Switch
