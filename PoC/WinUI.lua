@@ -126,6 +126,7 @@ local Flags = {
 local mouseHelper = KeyHelper.new(MOUSE_LEFT)
 local currentId = 0
 local activeId = nil
+local dragPos = nil
 
 local circle = Textures.Circle(16, { 255, 255, 255, 255 })
 
@@ -599,6 +600,20 @@ function CWindow:Draw()
     local x1, y1 = self.Pos[1], self.Pos[2]
     local w, h = self.Size[1], self.Size[2]
     local x2, y2 = x1 + w, y1 + h
+
+    -- Mouse drag
+    local hovered, clicked, active = GetInteraction(x1, y1, x2, y1 + Style.HeaderSize - Style.FramePadding, self.ID)
+    if active then
+        local mX, mY = table.unpack(input.GetMousePos())
+        if dragPos == nil then
+            dragPos = { mX - self.Pos[1], mY - self.Pos[2] }
+        elseif clicked then
+            dragPos = nil
+        end
+
+        self.Pos[1] = mX - dragPos[1]
+        self.Pos[2] = mY - dragPos[2]
+    end
 
     -- Background
     SetColor(Colors.SolidBackground.Base)
