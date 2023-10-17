@@ -320,7 +320,7 @@ function CButton:Draw(ctx)
     local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
     local w, h = self.Size[1], self.Size[2]
     local x2, y2 = x1 + w, y1 + h
-    local mib = Input.MouseInBounds(x1, y1, x2, y2)
+    local hovered, clicked, active = GetInteraction(x1, y1, x2, y2, self.ID)
 
     -- Options
     local accent = self.Flags & Flags.Accent ~= 0
@@ -329,18 +329,16 @@ function CButton:Draw(ctx)
     local plain = self.Flags & Flags.Plain ~= 0
 
     -- Interaction
-    if mib and mouseHelper:Released() then
+    if clicked then
         self.OnClick()
     end
 
     -- Background
     local bgColor = accent and Colors.AccentFill.Default or Colors.ControlFill.Default
-    if mib then
-        if mouseHelper:Down() then
-            bgColor = accent and Colors.AccentFill.Tertiary or Colors.ControlFill.Tertiary
-        else
-            bgColor = accent and Colors.AccentFill.Secondary or Colors.ControlFill.Secondary
-        end
+    if active then
+        bgColor = accent and Colors.AccentFill.Tertiary or Colors.ControlFill.Tertiary
+    elseif hovered then
+        bgColor = accent and Colors.AccentFill.Secondary or Colors.ControlFill.Secondary
     end
 
     if not plain then
@@ -349,7 +347,7 @@ function CButton:Draw(ctx)
     end
 
     SetColor(bgColor)
-    if plain and not mib then
+    if plain and not hovered then
         SetColor(Colors.ControlAltFill.Transparent)
     end
     RoundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 6)
