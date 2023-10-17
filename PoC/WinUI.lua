@@ -674,6 +674,10 @@ card2:AddComponent(label3)
 
 local function OnDraw()
     window:Draw()
+
+    -- Capture interaction
+    local w, h = draw.GetScreenSize()
+    GetInteraction(0, 0, w, h, -1)
 end
 
 local function OnUnload()
