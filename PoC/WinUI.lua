@@ -151,7 +151,7 @@ local function GetInteraction(x1, y1, x2, y2, id)
     end
 
     local hovered = Input.MouseInBounds(x1, y1, x2, y2) or id == activeId
-    local clicked = hovered and (mouseHelper:Pressed())
+    local clicked = hovered and (mouseHelper:Released())
     local active = hovered and (mouseHelper:Down())
 
     -- Should this element be active?
@@ -396,22 +396,20 @@ function CCheckbox:Draw(ctx)
 
     draw.SetFont(Fonts.Body)
     local tw, th = draw.GetTextSize(self.Text)
-    local mib = Input.MouseInBounds(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2)
+    local hovered, clicked, active = GetInteraction(x1, y1, x2 + tw + 2 * Style.ItemPadding, y2, self.ID)
 
     -- Interaction
-    if mib and mouseHelper:Released() then
+    if clicked then
         self.Checked = not self.Checked
         self.OnChange(self.Checked)
     end
 
     -- Checkmark
     local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
-    if mib then
-        if mouseHelper:Down() then
-            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Quarternary
-        else
-            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
-        end
+    if active then
+        bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Quarternary
+    elseif hovered then
+        bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
     end
 
     if self.Checked then
