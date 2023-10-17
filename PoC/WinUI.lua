@@ -408,9 +408,9 @@ function CCheckbox:Draw(ctx)
     local bgColor = self.Checked and Colors.AccentFill.Default or Colors.ControlAltFill.Secondary
     if mib then
         if mouseHelper:Down() then
-            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Tertiary
+            bgColor = self.Checked and Colors.AccentFill.Tertiary or Colors.ControlAltFill.Quarternary
         else
-            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Secondary
+            bgColor = self.Checked and Colors.AccentFill.Secondary or Colors.ControlAltFill.Tertiary
         end
     end
 
