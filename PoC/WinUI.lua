@@ -37,57 +37,57 @@ local Fonts = {
 local Colors = {
     -- For UI labels and static text
     Text = {
-        Primary = { 255, 255, 255 }, -- Rest or Hover
+        Primary = { 255, 255, 255 },   -- Rest or Hover
         Secondary = { 204, 204, 204 }, -- Rest or Hover
-        Tertiary = { 150, 150, 150 }, -- Pressed only
-        Disabled = { 113, 113, 113 } -- Disabled only
+        Tertiary = { 150, 150, 150 },  -- Pressed only
+        Disabled = { 113, 113, 113 }   -- Disabled only
     },
 
     -- Recommended for links
     AccentText = {
-        Primary = { 166, 216, 255 }, -- Rest or Hover
+        Primary = { 166, 216, 255 },   -- Rest or Hover
         Secondary = { 166, 216, 255 }, -- Rest or Hover
-        Tertiary = { 118, 185, 237 }, -- Pressed only
-        Disabled = { 113, 113, 113 } -- Disabled only
+        Tertiary = { 118, 185, 237 },  -- Pressed only
+        Disabled = { 113, 113, 113 }   -- Disabled only
     },
 
     -- Used for text on accent colored controls or fills
     TextOnAccent = {
-        Primary = { 0, 0, 0 }, -- Rest or Hover
-        Secondary = { 16, 16, 16 }, -- Pressed only
+        Primary = { 0, 0, 0 },        -- Rest or Hover
+        Secondary = { 16, 16, 16 },   -- Pressed only
         Disabled = { 150, 150, 150 }, -- Disabled only
     },
 
     -- Fill used for standard controls
     ControlFill = {
-        Default = { 45, 45, 45 }, -- Rest
+        Default = { 45, 45, 45 },   -- Rest
         Secondary = { 50, 50, 50 }, -- Hover
-        Tertiary = { 39, 39, 39 }, -- Pressed
-        Disabled = { 42, 42, 42 }, -- Disabled
+        Tertiary = { 39, 39, 39 },  -- Pressed
+        Disabled = { 42, 42, 42 },  -- Disabled
     },
 
     -- Fill used for the 'off' states of toggle controls
     ControlAltFill = {
         Transparent = { 32, 32, 32 },
-        Secondary = { 29, 29, 29 }, -- Rest
-        Tertiary = { 42, 42, 42 }, -- Hover
+        Secondary = { 29, 29, 29 },   -- Rest
+        Tertiary = { 42, 42, 42 },    -- Hover
         Quarternary = { 48, 48, 48 }, -- Pressed
-        Disabled = { 32, 32, 32 }, -- Disabled
+        Disabled = { 32, 32, 32 },    -- Disabled
     },
 
     -- Used for accent fills on controls
     AccentFill = {
-        Default = { 118, 185, 237 }, -- Rest
+        Default = { 118, 185, 237 },   -- Rest
         Secondary = { 109, 169, 216 }, -- Hover
-        Tertiary = { 100, 154, 195 }, -- Pressed
-        Disabled = { 67, 67, 67 }, -- Disabled
+        Tertiary = { 100, 154, 195 },  -- Pressed
+        Disabled = { 67, 67, 67 },     -- Disabled
     },
 
     -- USed for gradient stops in elevation borders, and for control states.
     ControlStroke = {
-        Default = { 48, 48, 48 }, -- Used in Control Elevation Brushes. Pressed or Disabled
-        Secondary = { 53, 53, 53 }, -- Used in Control Elevation Brushes
-        OnAccentDefault = { 49, 49, 49 }, -- Used in Control Elevation Brushes. Pressed or Disabled
+        Default = { 48, 48, 48 },           -- Used in Control Elevation Brushes. Pressed or Disabled
+        Secondary = { 53, 53, 53 },         -- Used in Control Elevation Brushes
+        OnAccentDefault = { 49, 49, 49 },   -- Used in Control Elevation Brushes. Pressed or Disabled
         OnAccentSecondary = { 28, 28, 28 }, -- Used in Control Elevation Brushes
     },
 
@@ -99,32 +99,33 @@ local Colors = {
 
     -- Used to create 'cards' - content blocks that live on page and layer background
     CardBackground = {
-        Default = { 43, 43, 43 }, -- Default card color
+        Default = { 43, 43, 43 },   -- Default card color
         Secondary = { 39, 39, 39 }, -- Alternate card color
     },
 
     -- Solid background colors to place layers, card or controls on
     SolidBackground = {
-        Base = { 32, 32, 32 }, -- Used for the bottom most layer of an experience
-        BaseAlt = { 10, 10, 10 }, -- Used for the bottom most layer of an experience
-        Secondary = { 28, 28, 28 }, -- Alternate base color for those who need a darker background color
-        Tertiary = { 40, 40, 40 }, -- Content layer color
+        Base = { 32, 32, 32 },       -- Used for the bottom most layer of an experience
+        BaseAlt = { 10, 10, 10 },    -- Used for the bottom most layer of an experience
+        Secondary = { 28, 28, 28 },  -- Alternate base color for those who need a darker background color
+        Tertiary = { 40, 40, 40 },   -- Content layer color
         Quaternary = { 44, 44, 44 }, -- Alt content layer color
     }
 }
 
 local Flags = {
-    None = 0, -- Default
-    Accent = 1 << 0, -- Accent color
-    Strong = 1 << 1, -- Bold text
+    None = 0,           -- Default
+    Accent = 1 << 0,    -- Accent color
+    Strong = 1 << 1,    -- Bold text
     LeftAlign = 1 << 2, -- Left text align
-    Plain = 1 << 3, -- No background
+    Plain = 1 << 3,     -- No background
 }
 
 --[[ Vars ]]
 
 local mouseHelper = KeyHelper.new(MOUSE_LEFT)
 local currentId = 0
+local activeId = nil
 
 local circle = Textures.Circle(16, { 255, 255, 255, 255 })
 
@@ -140,6 +141,30 @@ local Style = {
 local function GetUniqueId()
     currentId = currentId + 1
     return currentId
+end
+
+---@return boolean hovered, boolean clicked, boolean active
+local function GetInteraction(x1, y1, x2, y2, id)
+    -- Is a different element active?
+    if activeId ~= nil and activeId ~= id then
+        return false, false, false
+    end
+
+    local hovered = Input.MouseInBounds(x1, y1, x2, y2) or id == activeId
+    local clicked = hovered and (mouseHelper:Pressed())
+    local active = hovered and (mouseHelper:Down())
+
+    -- Should this element be active?
+    if active and activeId == nil then
+        activeId = id
+    end
+
+    -- Is this element no longer active?
+    if activeId == id and not active then
+        activeId = nil
+    end
+
+    return hovered, clicked, active
 end
 
 ---@param color number[]
@@ -493,7 +518,7 @@ local CNavView = {
     CurrentView = nil,
     _Buttons = {},
     _Frame = nil,
-    _CurrentY = 0, -- TODO: This is a hack
+    _CurrentY = Style.FramePadding, -- TODO: This is a hack
 }
 CNavView.__index = CNavView
 
@@ -506,6 +531,7 @@ function CNavView.new(views, flags)
     self.CurrentView = views and views[1] or nil
     self._Buttons = {}
     self._Frame = CCard.new({ 0, 0 }, { 0, 0 }) -- TODO: Use a frame component
+    self._CurrentY = Style.FramePadding
 
     for _, view in ipairs(self.Views) do
         self:AddView(view)
@@ -522,7 +548,8 @@ end
 function CNavView:AddView(view)
     assert(view.Name, "View must have a name")
 
-    local btn = CButton.new({ 0, self._CurrentY }, { 190, 32 }, view.Name, function() self:Show(view) end, Flags.LeftAlign | Flags.Plain)
+    local btn = CButton.new({ 0, self._CurrentY }, { 190, 32 }, view.Name, function() self:Show(view) end,
+        Flags.LeftAlign | Flags.Plain)
     table.insert(self._Buttons, btn)
 
     self._CurrentY = self._CurrentY + 32 + Style.ItemPadding
@@ -590,7 +617,8 @@ function CWindow:Draw()
     draw.Text(x1 + 2 * Style.FramePadding, y1 + Style.FramePadding, self.Title)
 
     -- Draw components
-    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize }, Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
+    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize },
+        Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
     for _, component in ipairs(self.Components) do
         component:Draw(ctx)
     end
@@ -611,13 +639,16 @@ local button2 = CButton.new({ 0, 100 }, { 190, 32 }, "Click me", function() prin
 window:AddComponent(button1)
 card2:AddComponent(button2)
 
-local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false, function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
-local check2 = CCheckbox.new({ 0, 30 }, "Checkbox 2", true, function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
+local check1 = CCheckbox.new({ 0, 0 }, "Checkbox 1", false,
+    function(value) print("Checkbox 1 changed to " .. tostring(value)) end)
+local check2 = CCheckbox.new({ 0, 30 }, "Checkbox 2", true,
+    function(value) print("Checkbox 2 changed to " .. tostring(value)) end)
 
 card1:AddComponent(check1)
 card1:AddComponent(check2)
 
-local switch1 = CSwitch.new({ 0, 60 }, "Enable input", input.IsMouseInputEnabled(), function(value) input.SetMouseInputEnabled(value) end)
+local switch1 = CSwitch.new({ 0, 60 }, "Enable input", input.IsMouseInputEnabled(),
+    function(value) input.SetMouseInputEnabled(value) end)
 local switch2 = CSwitch.new({ 0, 0 }, "Allow circles", Style.Circles, function(value) Style.Circles = value end)
 
 card1:AddComponent(switch1)
