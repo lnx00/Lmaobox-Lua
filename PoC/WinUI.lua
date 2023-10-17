@@ -605,14 +605,15 @@ function CWindow:Draw()
     local hovered, clicked, active = GetInteraction(x1, y1, x2, y1 + Style.HeaderSize - Style.FramePadding, self.ID)
     if active then
         local mX, mY = table.unpack(input.GetMousePos())
-        if dragPos == nil then
-            dragPos = { mX - self.Pos[1], mY - self.Pos[2] }
-        elseif clicked then
-            dragPos = nil
-        end
 
-        self.Pos[1] = mX - dragPos[1]
-        self.Pos[2] = mY - dragPos[2]
+        if dragPos ~= nil then
+            self.Pos[1] = mX - dragPos[1]
+            self.Pos[2] = mY - dragPos[2]
+        else
+            dragPos = { mX - self.Pos[1], mY - self.Pos[2] }
+        end
+    else
+        dragPos = nil
     end
 
     -- Background
