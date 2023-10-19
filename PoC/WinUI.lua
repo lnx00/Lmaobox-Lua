@@ -232,19 +232,13 @@ function CFrame:AddComponent(component)
     table.insert(self.Components, component)
 end
 
+---@param ctx Context
 function CFrame:Draw(ctx)
     local rect = ctx.Rect
     local x1, y1, x2, y2 = rect[1], rect[2], rect[3], rect[4]
 
-    -- Background
-    draw.Color(255, 0, 0, 2)
-    draw.FilledRect(x1, y1, x2, y2)
-
     -- Draw components
-    local childCtx = {
-        Pos = { x1 + Style.FramePadding, y1 + Style.FramePadding },
-        Size = { x2 - x1 - 2 * Style.FramePadding, y2 - y1 - 2 * Style.FramePadding }
-    }
+    local childCtx = { Rect = { x1 + Style.FramePadding, y1 + Style.FramePadding, x2, y2 } }
 
     for _, component in ipairs(self.Components) do
         component:Draw(childCtx)
@@ -303,7 +297,7 @@ function CCard:Draw(ctx)
         SetColor(Colors.Text.Primary)
         draw.Text(x1 + Style.FramePadding, y1 + Style.FramePadding, self.Name)
 
-        yOffset = th + 2 * Style.FramePadding
+        yOffset = th + Style.FramePadding
     end
 
     local frameCtx = { Rect = { x1, y1 + yOffset, x2, y2 } }
@@ -332,8 +326,10 @@ function CLabel.new(pos, text, font, flags)
     return self
 end
 
+---@param ctx Context
 function CLabel:Draw(ctx)
-    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local rect = ctx.Rect
+    local x1, y1 = rect[1] + self.Pos[1], rect[2] + self.Pos[2]
 
     draw.SetFont(self.Font)
     SetColor(Colors.Text.Primary)
@@ -364,8 +360,10 @@ function CButton.new(pos, size, text, onClick, flags)
     return self
 end
 
+---@param ctx Context
 function CButton:Draw(ctx)
-    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local rect = ctx.Rect
+    local x1, y1 = rect[1] + self.Pos[1], rect[2] + self.Pos[2]
     local w, h = self.Size[1], self.Size[2]
     local x2, y2 = x1 + w, y1 + h
     local hovered, clicked, active = GetInteraction(x1, y1, x2, y2, self.ID)
@@ -437,8 +435,10 @@ function CCheckbox.new(pos, text, value, onChange, flags)
     return self
 end
 
+---@param ctx Context
 function CCheckbox:Draw(ctx)
-    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local rect = ctx.Rect
+    local x1, y1 = rect[1] + self.Pos[1], rect[2] + self.Pos[2]
     local w, h = 20, 20
     local x2, y2 = x1 + w, y1 + h
 
@@ -503,8 +503,10 @@ function CSwitch.new(pos, text, value, onChange, flags)
     return self
 end
 
+---@param ctx Context
 function CSwitch:Draw(ctx)
-    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
+    local rect = ctx.Rect
+    local x1, y1 = rect[1] + self.Pos[1], rect[2] + self.Pos[2]
     local w, h = 40, 20
     local x2, y2 = x1 + w, y1 + h
 
@@ -598,10 +600,10 @@ function CNavView:AddView(view)
     --table.insert(self.Views, view)
 end
 
+---@param ctx Context
 function CNavView:Draw(ctx)
-    local x1, y1 = ctx.Pos[1], ctx.Pos[2]
-    local w, h = ctx.Size[1], ctx.Size[2]
-    local x2, y2 = x1 + w, y1 + h
+    local rect = ctx.Rect
+    local x1, y1, x2, y2 = rect[1], rect[2], rect[3], rect[4]
 
     -- Buttons
     for _, btn in ipairs(self._Buttons) do
@@ -676,12 +678,6 @@ function CWindow:Draw()
     -- Draw components
     local ctx = { Rect = { x1, y1 + Style.HeaderSize, x2, y2 } }
     self.Frame:Draw(ctx)
-
-    --[[local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize },
-        Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
-    for _, component in ipairs(self.Components) do
-        component:Draw(ctx)
-    end]]
 end
 
 --[[ Callbacks ]]
