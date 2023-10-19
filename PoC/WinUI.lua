@@ -207,19 +207,72 @@ end
 
 --[[ Components ]]
 
+---@class CFrame
+---@field ID integer
+---@field Visible boolean
+---@field Components table
+local CFrame = {
+    ID = 0,
+    Visible = true,
+    Components = {}
+}
+CFrame.__index = CFrame
+setmetatable(CFrame, CFrame)
+
+function CFrame.new()
+    local self = setmetatable({}, CFrame)
+    self.ID = GetUniqueId()
+    self.Visible = true
+    self.Components = {}
+
+    return self
+end
+
+function CFrame:AddComponent(component)
+    table.insert(self.Components, component)
+end
+
+function CFrame:Draw(ctx)
+    local rect = ctx.Rect
+    local x1, y1, x2, y2 = rect[1], rect[2], rect[3], rect[4]
+
+    -- Background
+    draw.Color(255, 0, 0, 2)
+    draw.FilledRect(x1, y1, x2, y2)
+
+    -- Draw components
+    local childCtx = {
+        Pos = { x1 + Style.FramePadding, y1 + Style.FramePadding },
+        Size = { x2 - x1 - 2 * Style.FramePadding, y2 - y1 - 2 * Style.FramePadding }
+    }
+
+    for _, component in ipairs(self.Components) do
+        component:Draw(childCtx)
+    end
+end
+
+---@class CCard : CFrame
+---@field ID integer
+---@field Visible boolean
+---@field Pos table<integer, integer>
+---@field Size table<integer, integer>
+---@field Name string?
+---@field Flags integer
 local CCard = {
     ID = 0,
     Visible = true,
     Pos = { 300, 500 },
     Size = { 160, 32 },
     Name = nil,
-    Flags = Flags.None,
-    Components = {}
+    Flags = Flags.None
 }
 CCard.__index = CCard
+setmetatable(CCard, CFrame)
 
 function CCard.new(pos, size, name, flags)
     local self = setmetatable({}, CCard)
+    -- TODO: Call super constructor
+
     self.ID = GetUniqueId()
     self.Visible = true
     self.Pos = pos or { 300, 500 }
@@ -231,15 +284,10 @@ function CCard.new(pos, size, name, flags)
     return self
 end
 
-function CCard:AddComponent(component)
-    table.insert(self.Components, component)
-end
-
+---@param ctx Context
 function CCard:Draw(ctx)
-    local x1, y1 = ctx.Pos[1] + self.Pos[1], ctx.Pos[2] + self.Pos[2]
-    local w = (self.Size[1] <= 0) and (ctx.Size[1] - self.Pos[1] + self.Size[1]) or self.Size[1]
-    local h = (self.Size[2] <= 0) and (ctx.Size[2] - self.Pos[2] + self.Size[2]) or self.Size[2]
-    local x2, y2 = x1 + w, y1 + h
+    local rect = ctx.Rect
+    local x1, y1, x2, y2 = rect[1], rect[2], rect[3], rect[4]
 
     -- Background
     local bgColor = Colors.CardBackground.Secondary
@@ -250,17 +298,16 @@ function CCard:Draw(ctx)
     local yOffset = 0
     if self.Name then
         draw.SetFont(Fonts.Subtitle)
-        SetColor(Colors.Text.Primary)
         local tw, th = draw.GetTextSize(self.Name)
+
+        SetColor(Colors.Text.Primary)
         draw.Text(x1 + Style.FramePadding, y1 + Style.FramePadding, self.Name)
-        yOffset = th + Style.FramePadding
+
+        yOffset = th + 2 * Style.FramePadding
     end
 
-    -- Draw components
-    local ctx2 = { Pos = { x1 + Style.FramePadding, y1 + yOffset + Style.FramePadding } }
-    for _, component in ipairs(self.Components) do
-        component:Draw(ctx2)
-    end
+    local frameCtx = { Rect = { x1, y1 + yOffset, x2, y2 } }
+    CFrame.Draw(self, frameCtx)
 end
 
 local CLabel = {
@@ -564,7 +611,7 @@ function CNavView:Draw(ctx)
 
     -- View
     if self.CurrentView then
-        local viewCtx = { Pos = { x1 + 190 + Style.FramePadding, y1 }, Size = { w - 190 - Style.FramePadding, h } }
+        local viewCtx = { Rect = { x1 + 190 + Style.FramePadding, y1, x2, y2 } }
         self.CurrentView:Draw(viewCtx)
     end
 end
@@ -575,7 +622,7 @@ local CWindow = {
     Pos = { 50, 50 },
     Size = { 400, 250 },
     Title = "",
-    Components = {}
+    Frame = nil
 }
 CWindow.__index = CWindow
 
@@ -587,13 +634,13 @@ function CWindow.new(pos, size, title)
     self.Pos = pos or { 50, 50 }
     self.Size = size or { 400, 250 }
     self.Title = title or "New Window"
-    self.Components = {}
+    self.Frame = CFrame.new()
 
     return self
 end
 
 function CWindow:AddComponent(component)
-    table.insert(self.Components, component)
+    self.Frame:AddComponent(component)
 end
 
 function CWindow:Draw()
@@ -627,11 +674,14 @@ function CWindow:Draw()
     draw.Text(x1 + 2 * Style.FramePadding, y1 + Style.FramePadding, self.Title)
 
     -- Draw components
-    local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize },
+    local ctx = { Rect = { x1, y1 + Style.HeaderSize, x2, y2 } }
+    self.Frame:Draw(ctx)
+
+    --[[local ctx = { Pos = { x1 + Style.FramePadding, y1 + Style.HeaderSize },
         Size = { w - 2 * Style.FramePadding, h - Style.HeaderSize - Style.FramePadding } }
     for _, component in ipairs(self.Components) do
         component:Draw(ctx)
-    end
+    end]]
 end
 
 --[[ Callbacks ]]
@@ -684,8 +734,8 @@ local function OnUnload()
     draw.DeleteTexture(circle)
 end
 
-callbacks.Unregister("Draw", "LNX.ModernUI.Draw")
-callbacks.Register("Draw", "LNX.ModernUI.Draw", OnDraw)
+callbacks.Unregister("Draw", "LNX.WinUI.Draw")
+callbacks.Register("Draw", "LNX.WinUI.Draw", OnDraw)
 
-callbacks.Unregister("Unload", "LNX.ModernUI.Unload")
-callbacks.Register("Unload", "LNX.ModernUI.Unload", OnUnload)
+callbacks.Unregister("Unload", "LNX.WinUI.Unload")
+callbacks.Register("Unload", "LNX.WinUI.Unload", OnUnload)
