@@ -1,12 +1,23 @@
 # LNX's Lmaobox LUA files
+
 Collection of my LUA files for Lmaobox
 
 ## Table of contents
-- **ChatCensor.lua:** Clears the chat if a player accuses you. Remember that you can't see the chat clear if **Remove Unprintable** is enabled in Lmaobox.
-- **Freecam.lua:** Allows you to fly around in the map while holding the freecam key. You can customize the freecam key (Defaults to Shift) and the camera speed.
-- **AutoQueue.lua:** Automatically queues for a new match.
-- **MC-Healthbar.lua** Minecraft Healthbar for TF2. Make sure to copy the *Textures* folder into your TF2 directory!
-- **Misc-Tools.lua:** Various small fun and QOL features to enhance Lmaobox. Requires MenuLib 1.35+
-- **[Menu.lua](Docs/Menu.md):** Simple GUI library that was created with ease of use in mind.
-- **FreeMenu.lua:** Remake of the Lmaobox Free menu (WIP)
-- **UI.lua:** UI Library to easily create and modify Rects, Lines and Text. It also includes a basic Fade in/Fade out and transformation animation.
+
+Name | Description
+--- | ---
+[Auto Peek](AutoPeek.lua) | Automatically peeks out of cover to shoot at enemies
+[Auto Queue](AutoQueue.lua) | Automatically queues for a new match
+[Chat Censor](ChatCensor.lua) | Clears the chat if a player accuses you (Outdated)
+[DT Bar](DT-Bar.lua) | Simple double tap indicator example
+[ESP](ESP.lua) | Simple ESP example
+[Free Menu](FreeMenu.lua) | Recreation of the Lmaobox Free menu
+[Freecam](Freecam.lua) | Allows you to fly around in the map while holding the freecam key
+[Infinite Food](Infinite-Food.lua) | Infinite sandwich exploit for Heavy
+[Menu](Menu.lua) | Modular GUI library
+[Misc Tools](Misc-Tools.lua) | Various small fun and QOL features/enhancements
+[Ping Reducer](PingReducer.lua) | Reduces your ping to a custom amount (Outdated)
+[Rich Presence](RichPresence.lua) | Steam Rich Presence example
+[Rick Remover](RickRemover.lua) | Removes the Rick May statue from the map
+[UI](UI.lua) | UI library to easily create and modify Rects, Lines and Text
+[Utils](Utils.lua) | Utility functions
