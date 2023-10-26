@@ -1,6 +1,6 @@
-# LNX's Lmaobox LUA files
+# LNX's Lmaobox Lua scripts
 
-Collection of my LUA files for Lmaobox
+Collection of my Lua files for Lmaobox
 
 ## Table of contents
 
