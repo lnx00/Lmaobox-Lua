@@ -14,7 +14,7 @@ Name | Description
 [Free Menu](FreeMenu.lua) | Recreation of the Lmaobox Free menu
 [Freecam](Freecam.lua) | Allows you to fly around in the map while holding the freecam key
 [Infinite Food](Infinite-Food.lua) | Infinite sandwich exploit for Heavy
-[Menu](Menu.lua) | Modular GUI library
+[Menu](Menu.lua) | Modular GUI library [(Docs)](https://github.com/lnx00/Lmaobox-Lua/wiki/Menu-Library)
 [Misc Tools](Misc-Tools.lua) | Various small fun and QOL features/enhancements
 [Ping Reducer](PingReducer.lua) | Reduces your ping to a custom amount (Outdated)
 [Rich Presence](RichPresence.lua) | Steam Rich Presence example
