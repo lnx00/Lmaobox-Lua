@@ -1,6 +1,6 @@
-# LNX's Lmaobox LUA files
+# LNX's Lmaobox Lua scripts
 
-Collection of my LUA files for Lmaobox
+Collection of my Lua files for Lmaobox
 
 ## Table of contents
 
@@ -18,6 +18,5 @@ Name | Description
 [Misc Tools](Misc-Tools.lua) | Various small fun and QOL features/enhancements
 [Ping Reducer](PingReducer.lua) | Reduces your ping to a custom amount (Outdated)
 [Rich Presence](RichPresence.lua) | Steam Rich Presence example
-[Rick Remover](RickRemover.lua) | Removes the Rick May statue from the map
 [UI](UI.lua) | UI library to easily create and modify Rects, Lines and Text
 [Utils](Utils.lua) | Utility functions
