@@ -237,9 +237,12 @@ function CFrame:Draw(ctx)
     local rect = ctx.Rect
     local x1, y1, x2, y2 = rect[1], rect[2], rect[3], rect[4]
 
+    -- Background
+    draw.Color(255, 0, 0, 2)
+    draw.FilledRect(x1, y1, x2, y2)
+
     -- Draw components
     local childCtx = { Rect = { x1 + Style.FramePadding, y1 + Style.FramePadding, x2, y2 } }
-
     for _, component in ipairs(self.Components) do
         component:Draw(childCtx)
     end
