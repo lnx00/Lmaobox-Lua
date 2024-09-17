@@ -85,6 +85,7 @@ local function MouseInBounds(pX, pY, pX2, pY2)
 end
 
 local LastMouseState = false
+local MOUSE_LEFT = 1
 local function UpdateMouseState()
     local mouseState = input.IsButtonDown(MOUSE_LEFT)
     MouseReleased = (mouseState == false and LastMouseState)
