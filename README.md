@@ -21,6 +21,4 @@ Name | Description
 [UniversalBind](src/Universal-Bind.lua) | Universal key binding
 [Utils](src/Utils.lua) | Utility functions
 [Menu](src/MenuLib/Menu.lua) | Modular GUI library [(Docs)](https://github.com/lnx00/Lmaobox-Lua/wiki/Menu-Library)
-[Aimbot](src/PoC/Aimbot.lua) | Pew Pew
-[Recorder](src/PoC/Recorder.lua) | Simple movement recorder
-[WinUI](src/PoC/WinUI.lua) | Proof of concept for a WinUI styled menu library
+[Minecraft Healthbar](src/MC-Healthbar) | Minecraft styled healthbar
