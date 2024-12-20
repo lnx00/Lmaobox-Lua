@@ -1,6 +1,6 @@
 # LNX's Lmaobox Lua scripts
 
-Collection of my Lua files for Lmaobox
+Collection of my Lua files for Lmaobox.
 
 ## Table of contents
 
@@ -17,7 +17,6 @@ Name | Description
 [Misc Tools](src/Misc-Tools.lua) | Various small fun and QOL features/enhancements
 [Ping Reducer](src/PingReducer.lua) | Reduces your ping to a custom amount (Outdated)
 [Rich Presence](src/RichPresence.lua) | Steam Rich Presence example
-[Rick Remover](src/RickRemover.lua) | Hide rick soldier statue
 [UI](src/UI.lua) | UI library to easily create and modify Rects, Lines and Text
 [UniversalBind](src/Universal-Bind.lua) | Universal key binding
 [Utils](src/Utils.lua) | Utility functions
@@ -25,4 +24,3 @@ Name | Description
 [Aimbot](src/PoC/Aimbot.lua) | Pew Pew
 [Recorder](src/PoC/Recorder.lua) | Simple movement recorder
 [WinUI](src/PoC/WinUI.lua) | Proof of concept for a WinUI styled menu library
-
