@@ -1,0 +1,57 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lnx00/Lmaobox-LmaoGet/refs/heads/main/schema/lmaoget-repo.schema.json",
+    "name": "LNX's Repository",
+    "packages": [
+        {
+            "id": "lnxLib",
+            "name": "LNX's utility library",
+            "description": "A collection of utility functions for Lmaobox.",
+            "version": "1.0.0",
+            "url": "https://github.com/lnx00/Lmaobox-Library/releases/download/v1.00.0/lnxLib.lua"
+        },
+        {
+            "id": "AutoPeek",
+            "name": "Auto Peek",
+            "description": "Automatically peeks around the corner.",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/AutoPeek.lua"
+        },
+        {
+            "id": "DTBar",
+            "name": "Double Tap Bar",
+            "description": "Simple double tap bar.",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/DT-Bar.lua"
+        },
+        {
+            "id": "ESP",
+            "name": "Simple ESP",
+            "description": "",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/ESP.lua",
+            "dependencies": ["lnx00.lnxLib"]
+        },
+        {
+            "id": "FreeMenu",
+            "name": "Lmaobox Free Menu",
+            "description": "",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/FreeMenu.lua"
+        },
+        {
+            "id": "Freecam",
+            "name": "Freecam",
+            "description": "Move your camera around freely.",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/Freecam.lua"
+        },
+        {
+            "id": "InfiniteFood",
+            "name": "Infinite Food Exploit",
+            "description": "",
+            "version": "1.0.0",
+            "url": "https://raw.githubusercontent.com/lnx00/Lmaobox-Lua/refs/heads/main/src/Infinite-Food.lua",
+            "dependencies": ["lnx00.lnxLib"]
+        }
+    ]
+}
